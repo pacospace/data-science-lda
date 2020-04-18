@@ -21,19 +21,25 @@
 import os
 import logging
 
-from create_srcopsmetrics_inputs import create_source_ops_metrics_inputs
-from collect_packages_readme import aggregate_dataset
+from data_science.create_srcopsmetrics_inputs import create_source_ops_metrics_inputs
+from data_science.collect_packages_readme import aggregate_dataset
 
 _LOGGER = logging.getLogger(__name__)
+
 DEBUG_LEVEL = bool(int(os.getenv("DEBUG_LEVEL", 0)))
+
 if DEBUG_LEVEL:
     logging.basicConfig(level=logging.DEBUG)
 else:
     logging.basicConfig(level=logging.INFO)
 
 if __name__ == "__main__":
+    # Create dataset
     _LOGGER.info("Creating inputs for SrcOpsMetrics...")
     # create_source_ops_metrics_inputs()
 
     _LOGGER.info("Collecting README files using SrcOpsMetrics...")
     aggregate_dataset()
+
+    # Analyze dataset
+

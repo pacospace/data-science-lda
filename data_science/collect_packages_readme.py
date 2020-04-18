@@ -21,8 +21,8 @@ import logging
 
 from pathlib import Path
 
-from utils import _retrieve_file
-from utils import _store_file
+from .utils import _retrieve_file
+from .utils import _store_file
 
 _LOGGER = logging.getLogger("data_science_lda.collect_packages_readme")
 
@@ -43,8 +43,12 @@ def aggregate_dataset() -> None:
     """Collect and aggregate all README in one json file."""
     _collect_readme_per_python_package()
 
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+
+    complete_file_path = repo_path.joinpath("data_science_github_repo_complete.json")
     data_science_github_repo_complete = _retrieve_file(
-        file_path='data_science_github_repo_complete.json',
+        file_path=complete_file_path,
         file_type="json"
     )
     dataset = {}
@@ -58,9 +62,10 @@ def aggregate_dataset() -> None:
             try:
                 dataset[package]['github_repo'] = data['github_repo']
                 package_readme = _retrieve_file(
-                    file_path=f'{current_path}/bot_knowledge/{project}/{repo}/content_file.json',
+                    file_path=f'{repo_path}/bot_knowledge/{project}/{repo}/content_file.json',
                     file_type="json"
                 )
+                dataset[package]['readme'] = package_readme['results']['content_files']
 
             except Exception as e:
 
@@ -69,21 +74,23 @@ def aggregate_dataset() -> None:
                     project = ADJUSTED_GITHUB_REPO[package][0]
                     repo = ADJUSTED_GITHUB_REPO[package][1]
                     package_readme = _retrieve_file(
-                        file_path=f'{current_path}/bot_knowledge/{project}/{repo}/content_file.json',
+                        file_path=f'{repo_path}/bot_knowledge/{project}/{repo}/content_file.json',
                         file_type="json"
                     )
+                    dataset[package]['readme'] = package_readme['results']['content_files']
 
                 except Exception as e:
                     _LOGGER.warning("README file cannot be collected.")
+                    dataset[package]['readme'] = ""
                     pass
 
-            dataset[package]['readme'] = package_readme['results']['content_files']
         else:
             dataset[package]['github_repo'] = ["", ""]
             dataset[package]['readme'] = ""
 
+    dataset_path = repo_path.joinpath('datasets', "final_dataset.json")
     _store_file(
-        file_path=f'{current_path}/datasets/ssfinal_dataset.json',
+        file_path=dataset_path,
         file_type="json",
         collected_data=dataset
     )
