@@ -40,5 +40,5 @@ Dataset is ready to be analyzed!
 Dataset pre-processing
 ----------------------
 
-1. Data cleansing have been applied to obtain a `clean_dataset.json` that can be fed for NLP techniques and LDA.
+1. Apply data cleaning to obtain a `clean_dataset.json` that can be fed for NLP techniques and LDA.
 
