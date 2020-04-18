@@ -19,51 +19,22 @@
 
 import logging
 import requests
-import yaml
-import json
 
-from pathlib import Path
-from typing import Optional
-from typing import Any
 from urllib.parse import urlparse
 
-from .exception import UnknownFileTypeError
+from utils import _retrieve_file
+from utils import _store_file
 
 _LOGGER = logging.getLogger("data_science_lda.create_srcopsmetrics_inputs")
 
-def _retrieve_file(file_path: Path, file_type: str) -> Optional[Any]:
-    """Retrieve file to be used."""
-    with open(file_path, 'r') as yaml_file:
-        if file_type == "yaml":
-            input_file = yaml.safe_load(yaml_file)
-        elif file_type == "json":
-            input_file = json.load(json_file)
-        else:
-            raise UnknownFileTypeError(
-        f"File type requested is not known {file_type},"
-        "only `json` and `yaml` currently available."
-        )
 
-    return input_file
-
-def _store_file(file_path: Path, file_type: str, collected_data: Any) -> None:
-    """Store file with collected data."""
-    with open(file_path, 'w') as outfile:
-        if file_type == "json":
-            input_file = json.dump(collected_data, outfile)
-        else:
-            raise UnknownFileTypeError(
-        f"File type requested is not known {file_type},"
-        "only `json` currently available."
-        )
-
-def _check_python_packages_exist() -> List[str]:
+def _check_python_packages_exist() -> None:
     """Check if the Python Package in the list exist on PyPI."""
     requested_packages = _retrieve_file(
         file_path="../dataset/hunders_datascience_packages.yaml",
         file_type="yaml"
     )
-    for package_name in requested_packages["hundred_datascience_packages"]
+    for package_name in requested_packages["hundred_datascience_packages"]:
         _LOGGER.debug(f"Checking {package_name}...")
         response = requests.get("https://pypi.org/project/{}/#history".format(package_name))
         if response.status_code == 200:
@@ -114,7 +85,7 @@ def _retrieve_python_packages_metadata() -> None:
         try:
             # TODO: Use Thoth User API endpoint for metadata to collect those.
             data = dict(importlib_metadata.metadata(package_name).items())
-             _LOGGER.debug(f"Collected metadata \n {data}")
+            _LOGGER.debug(f"Collected metadata \n {data}")
 
             try:
                 project, repo = _get_project_repo_github_from_metadata(
@@ -205,19 +176,23 @@ def _add_missing_python_packages_metadata() -> None:
     }
 
     data_science_github_repo_complete = {}
-    with open('data_science_github_repo.json', "r") as json_file:
-        data_science_github_repo = json.load(json_file)
-        for package, data in data_science_github_repo.items():
-            data_science_github_repo_complete[package] = {}
-            if not data['github_repo'][0]:
-                if package in missing_github_repo.keys():
-                    data_science_github_repo_complete[package]['github_repo'] = missing_github_repo[package]
-            else:
-                data_science_github_repo_complete[package]['github_repo'] = data['github_repo']
+    data_science_github_repo = _retrieve_file(
+        file_path='data_science_github_repo.json',
+        file_type="json"
+    )
+    for package, data in data_science_github_repo.items():
+        data_science_github_repo_complete[package] = {}
+        if not data['github_repo'][0]:
+            if package in MISSING_GITHUB_REPO_NAMES.keys():
+                data_science_github_repo_complete[package]['github_repo'] = MISSING_GITHUB_REPO_NAMES[package]
+        else:
+            data_science_github_repo_complete[package]['github_repo'] = data['github_repo']
 
-
-with open('data_science_github_repo_complete.json', 'w') as outfile:
-    json.dump(data_science_github_repo_complete, outfile)
+    _store_file(
+        file_path='data_science_github_repo_complete.json',
+        file_type="json",
+        collected_data=data_science_github_repo_complete
+    )
 
 def create_source_ops_metrics_inputs() -> None:
     """Create SrcOpsMetrics inputs."""
