@@ -23,7 +23,7 @@ each packages have been checked on PyPi API to be sure name of the packages is c
 3. Using ``package_name``, ``version`` and ``index_url`` Thoth User API has been called to get metadata related to those packages without need to install them.
 Alternativate approach would be to use `importlib_metadata API <https://importlib-metadata.readthedocs.io/en/latest/#>`__, altough it requires packages installed.
 This approach is actually used under the hood in Thoth, which collects this info regarding packages
-when it solves packages `solver<https://github.com/thoth-station/solver/blob/92e1cc3ce3385b3de8d59a0b48b9173eb3e2acc7/thoth/solver/python/instrument.py#L63>`__
+when it solves packages `solver <https://github.com/thoth-station/solver/blob/92e1cc3ce3385b3de8d59a0b48b9173eb3e2acc7/thoth/solver/python/instrument.py#L63>`__
 and store these info directly in Thoth Knowledge Graph.
 
 From metadata collected from each package, two specific metadata were checked to find out github project and repo names to be used in 
