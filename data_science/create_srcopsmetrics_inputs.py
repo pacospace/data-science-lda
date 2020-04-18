@@ -22,8 +22,8 @@ import requests
 
 from urllib.parse import urlparse
 
-from utils import _retrieve_file
-from utils import _store_file
+from .utils import _retrieve_file
+from .utils import _store_file
 
 _LOGGER = logging.getLogger("data_science_lda.create_srcopsmetrics_inputs")
 
