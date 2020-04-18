@@ -23,6 +23,7 @@ import logging
 
 from data_science.create_srcopsmetrics_inputs import create_source_ops_metrics_inputs
 from data_science.collect_packages_readme import aggregate_dataset
+from data_science.nlp.clean_data import clean_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,7 +40,9 @@ if __name__ == "__main__":
     # create_source_ops_metrics_inputs()
 
     _LOGGER.info("Collecting README files using SrcOpsMetrics...")
-    aggregate_dataset()
+    # aggregate_dataset()
 
-    # Analyze dataset
+    # Pre-process dataset
+    _LOGGER.info("Cleaning README files using NLP...")
+    clean_data()
 
