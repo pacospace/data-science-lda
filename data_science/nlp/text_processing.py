@@ -71,25 +71,49 @@ def _entity_word_expansion_map(raw_text: str, entity_word_type: str) -> List[Uni
 
     return word_expansion_map
 
+def _abbreviations_extraction(raw_text: str) -> List[str]:
+    """Extract abbreviations from the raw text, used for normalization"""
+    # TODO: Add regex also for abbreviations like e.g.
+    _REGEX_ABBREVIATION = r"(\w+\.)"
+    extracted_words = re.findall(_REGEX_ABBREVIATION, raw_text)
+    abbreviations = [abb for abb in extracted_words if 2 < len(abb) <= 3 and not abb[0].isdigit()]
+
+    return sorted(list(set(abbreviations)))
+
 def text_processing(raw_text: str):
     """Apply text processing to raw text."""
     current_path = Path.cwd()
     repo_path = current_path.joinpath('data_science', "nlp")
 
+    # Retrieve list of non-character word list for normalization
     non_characerter_words = _retrieve_file(
         file_path=f'{repo_path}/non_character_words.txt',
         file_type="txt"
     )
-    # Retrieve list of non-character word list for normalization
-    delete_list = [n_character.split('\n')[0] for n_character in non_characerter_words]
-    print(delete_list)
+    non_characerter_words = [n_character.split('\n')[0] for n_character in non_characerter_words]
+    _LOGGER.debug(f"Non-character words... \n{non_characerter_words}")
 
-    # Extract hyphen words
+    # Extract hyphen words for normalization
     entity_word_type = "hyphen"
     hyphen_word_expansion = _entity_word_expansion_map(raw_text=raw_text, entity_word_type=entity_word_type)
-    _LOGGER.debug(f"Possible hyphen words identified with their expension... \n{hyphen_word_expansion}")
+    _LOGGER.debug(f"Possible hyphen words identified with their expensions... \n{hyphen_word_expansion}")
 
-    # Extract slash words
+    # Extract slash words for normalization
     entity_word_type = "slash"
     slash_word_expansion = _entity_word_expansion_map(raw_text=raw_text, entity_word_type=entity_word_type)
-    _LOGGER.debug(f"Possible slash words identified with their expension... \n{slash_word_expansion}")
+    _LOGGER.debug(f"Possible slash words identified with their expensions... \n{slash_word_expansion}")
+
+    # Extract Abbreviations
+    abbreviations = _abbreviations_extraction(raw_text=raw_text)
+    _LOGGER.debug(f"Abbreviations identified... \n{abbreviations}")
+
+    # Retrieve list of Abbreviations inserted for normalization
+    abbreviations_inserted = _retrieve_file(
+        file_path=f'{repo_path}/abbreviations.txt',
+        file_type="txt"
+    )
+    abbreviations_expansions = []
+    for abbreviation_row in abbreviations_inserted.split('\n'):
+        abbreviation_expansion = abbreviation_row.split(',')
+        abbreviations_expansions.append([abbreviation_expansion[0], abbreviation_expansion[1].split(' ')])
+    _LOGGER.debug(f"Abbreviations inserted with their expansions... \n{abbreviations_expansions}")

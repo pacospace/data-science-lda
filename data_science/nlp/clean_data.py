@@ -43,9 +43,9 @@ def clean_data() -> None:
         file_type="json"
     )
 
-    for package_name, package_data in data_science_readme_dataset.items():
-        _LOGGER.debug(f"Pre-processing package: {package_name}...")
-        readme_raw_text = package_data['readme']['content']
+    for file_data in data_science_readme_dataset.values():
+        _LOGGER.debug(f"Pre-processing file: {file_data['file_name']}...")
+        readme_raw_text = file_data['raw_text']
 
         text_processing(raw_text=readme_raw_text)
         print(r)
