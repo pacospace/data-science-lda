@@ -21,10 +21,10 @@ import logging
 
 from pathlib import Path
 
-from .utils import _retrieve_file
-from .utils import _store_file
+from ..utils import _retrieve_file
+from ..utils import _store_file
 
-_LOGGER = logging.getLogger("data_science_lda.collect_packages_readme")
+_LOGGER = logging.getLogger("data_science_lda.data_gathering.collect_packages_readme")
 
 ADJUSTED_GITHUB_REPO = {
     'nni': ["microsoft", 'nni'],
@@ -46,7 +46,7 @@ def aggregate_dataset() -> None:
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
 
-    complete_file_path = repo_path.joinpath("data_science_github_repo_complete.json")
+    complete_file_path = repo_path.joinpath("data_gathering", "data_science_github_repo_complete.json")
     data_science_github_repo_complete = _retrieve_file(
         file_path=complete_file_path,
         file_type="json"
@@ -60,33 +60,37 @@ def aggregate_dataset() -> None:
             repo = data['github_repo'][1]
             current_path = Path.cwd()
             try:
-                dataset[package]['github_repo'] = data['github_repo']
                 package_readme = _retrieve_file(
                     file_path=f'{repo_path}/bot_knowledge/{project}/{repo}/content_file.json',
                     file_type="json"
                 )
-                dataset[package]['readme'] = package_readme['results']['content_files']
+                dataset[package]['file_name'] = "/".join(
+                    data['github_repo'] + [package_readme['results']['content_files']['name']]
+                )
+                dataset[package]['raw_text'] = package_readme['results']['content_files']['content']
 
             except Exception as e:
 
                 try:
-                    dataset[package]['github_repo'] = ADJUSTED_GITHUB_REPO[package]
                     project = ADJUSTED_GITHUB_REPO[package][0]
                     repo = ADJUSTED_GITHUB_REPO[package][1]
                     package_readme = _retrieve_file(
                         file_path=f'{repo_path}/bot_knowledge/{project}/{repo}/content_file.json',
                         file_type="json"
                     )
-                    dataset[package]['readme'] = package_readme['results']['content_files']
+                    dataset[package]['file_name'] = "/".join(
+                        ADJUSTED_GITHUB_REPO[package] + [package_readme['results']['content_files']['name']]
+                    )
+                    dataset[package]['raw_text'] = package_readme['results']['content_files']['content']
 
                 except Exception as e:
                     _LOGGER.warning("README file cannot be collected.")
-                    dataset[package]['readme'] = ""
+                    dataset[package]['raw_text'] = ""
                     pass
 
         else:
-            dataset[package]['github_repo'] = ["", ""]
-            dataset[package]['readme'] = ""
+            dataset[package]['file_name'] = ""
+            dataset[package]['raw_text'] = ""
 
     dataset_path = repo_path.joinpath('datasets', "final_dataset.json")
     _store_file(

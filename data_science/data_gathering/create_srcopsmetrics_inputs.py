@@ -22,10 +22,10 @@ import requests
 
 from urllib.parse import urlparse
 
-from .utils import _retrieve_file
-from .utils import _store_file
+from ..utils import _retrieve_file
+from ..utils import _store_file
 
-_LOGGER = logging.getLogger("data_science_lda.create_srcopsmetrics_inputs")
+_LOGGER = logging.getLogger("data_science_lda.data_gathering.create_srcopsmetrics_inputs")
 
 
 def _check_python_packages_exist() -> None:
