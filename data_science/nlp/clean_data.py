@@ -23,9 +23,10 @@ from pathlib import Path
 from typing import Optional
 from typing import Any
 
-from nltk import word_tokenize
+from tqdm import tqdm
 
 from ..utils import _retrieve_file
+from ..utils import _store_file
 from .text_processing import text_processing
 
 _LOGGER = logging.getLogger("data_science_lda.utils")
@@ -38,15 +39,31 @@ def clean_data() -> None:
 
     complete_file_path = repo_path.joinpath("datasets", "final_dataset.json")
 
-    data_science_readme_dataset = _retrieve_file(
+    dataset = _retrieve_file(
         file_path=complete_file_path,
         file_type="json"
     )
 
-    for file_data in data_science_readme_dataset.values():
-        _LOGGER.debug(f"Pre-processing file: {file_data['file_name']}...")
-        readme_raw_text = file_data['raw_text']
+    clean_dataset = {}
 
-        text_processing(raw_text=readme_raw_text)
-        print(r)
+    for file_id, file_data in tqdm(dataset.items(), desc='Cleaning Readme'):
+        file_name = file_data['file_name']
+        _LOGGER.info(f"Data cleaning for file id: {file_id}...")
+        _LOGGER.info(f"Data cleaning for file name: {file_name}...")
+        if file_data['raw_text']:
+            readme_raw_text = file_data['raw_text']
+
+            vocabulary = text_processing(raw_text=readme_raw_text)
+            _LOGGER.info(f"File vocabulary... \n{vocabulary}")
+            clean_dataset[file_name] = vocabulary
+        else:
+            _LOGGER.warning(f"{file_id} does not have a readme file!")
+
+    complete_file_path = repo_path.joinpath("datasets", "clean_dataset.json")
+
+    _store_file(
+        file_path=complete_file_path,
+        file_type="json",
+        collected_data=clean_dataset
+    )
 
