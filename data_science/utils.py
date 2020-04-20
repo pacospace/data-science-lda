@@ -49,7 +49,7 @@ def _store_file(file_path: Path, file_type: str, collected_data: Any) -> None:
     """Store file with collected data."""
     with open(file_path, 'w') as outfile:
         if file_type == "json":
-            input_file = json.dump(collected_data, outfile)
+            json.dump(collected_data, outfile)
         else:
             raise UnknownFileTypeError(
         f"File type requested is not known {file_type},"
