@@ -37,7 +37,7 @@ def clean_data() -> None:
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
 
-    complete_file_path = repo_path.joinpath("datasets", "final_dataset.json")
+    complete_file_path = repo_path.joinpath("datasets", "initial_dataset.json")
 
     dataset = _retrieve_file(
         file_path=complete_file_path,
@@ -66,4 +66,3 @@ def clean_data() -> None:
         file_type="json",
         collected_data=clean_dataset
     )
-

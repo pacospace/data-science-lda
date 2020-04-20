@@ -92,7 +92,7 @@ def aggregate_dataset() -> None:
             dataset[package]['file_name'] = ""
             dataset[package]['raw_text'] = ""
 
-    dataset_path = repo_path.joinpath('datasets', "final_dataset.json")
+    dataset_path = repo_path.joinpath('datasets', "initial_dataset.json")
     _store_file(
         file_path=dataset_path,
         file_type="json",
