@@ -35,6 +35,8 @@ def _retrieve_file(file_path: Path, file_type: str) -> Optional[Any]:
             input_file = yaml.safe_load(retrieved_file)
         elif file_type == "json":
             input_file = json.load(retrieved_file)
+        elif file_type == "txt":
+            input_file = retrieved_file.read()
         else:
             raise UnknownFileTypeError(
         f"File type requested is not known {file_type},"

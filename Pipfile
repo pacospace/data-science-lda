@@ -12,6 +12,8 @@ jupyter-nbrequirements = "*"
 prompt-toolkit = "*"
 srcopsmetrics = "*"
 requests = "*"
+spacy = "*"
+pyenchant = "*"
 
 [requires]
 python_version = "3.6"
