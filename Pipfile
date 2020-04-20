@@ -3,8 +3,6 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[dev-packages]
-
 [packages]
 jupyter = "*"
 jupyter_contrib_nbextensions = "*"
@@ -14,6 +12,18 @@ srcopsmetrics = "*"
 requests = "*"
 spacy = "*"
 pyenchant = "*"
+gensim = "*"
+tqdm = "*"
+pyldavis = "*"
+pyyaml = "==3.13"
+
+[dev-packages]
+pytest = "*"
+pytest-timeout = "*"
+pytest-cov = "*"
+hypothesis-auto = "*"
+hypothesis = "*"
+pytest-mypy = "*"
 
 [requires]
 python_version = "3.6"
