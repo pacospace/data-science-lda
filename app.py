@@ -24,6 +24,7 @@ import logging
 from data_science.data_gathering import create_srcopsmetrics_inputs
 from data_science.data_gathering.collect_packages_readme import aggregate_dataset
 from data_science.nlp.clean_data import clean_data
+from data_science.lda.lda import lda, create_inputs_for_lda
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,5 +45,9 @@ if __name__ == "__main__":
 
     # Pre-process dataset
     _LOGGER.info("Cleaning README files using NLP...")
-    clean_data()
+    # clean_data()
+
+    # Apply LDA
+    _LOGGER.info("Create inputs for LDA from Clean Dataset...")
+    lda()
 
