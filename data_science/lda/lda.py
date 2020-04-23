@@ -129,11 +129,14 @@ def _run_lda(
 
     topics = ldamodel.print_topics()
 
-    _LOGGER.info("Topic identified:\n")
-    topic_counter = 0
-    for topic in topics:
-        _LOGGER.info(f"Topic #{topic_counter}: {topic}")
-        topic_counter += 1
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+    results_path = repo_path.joinpath('lda', "ldamodel_topics.json")
+    _store_file(
+        file_path=results_path,
+        file_type="json",
+        collected_data={f"{model_name}_lda_model_topics": topics}
+    )
 
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     visualisation = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
@@ -141,7 +144,6 @@ def _run_lda(
         "lda", f"LDA_Visualization_{model_name}.html"
     )
     pyLDAvis.save_html(visualisation, str(complete_file_path))
-
 
     return ldamodel
 
@@ -153,7 +155,7 @@ def _evaluate_metrics(
     dictionary: List[Any],
 ):
     """Evaluate metrics for the model trained."""
-    # Model Perplexity
+    # Model Perplexity, a measure of how good the model is. lower the better.
     perplexity = ldamodel.log_perplexity(corpus)
     perplexity_exponential = math.exp(perplexity)
 
@@ -177,10 +179,11 @@ def _visualize_hyperparameters_tuning_results():
         file_type="json",
     )
     max_coherence = max(map(lambda x: x[4], results_hyperparameter_tuning))
-    print(max_coherence)
+    _LOGGER.info(f"Max Coherence: {max_coherence}")
     for result in results_hyperparameter_tuning:
         if result[4] == max_coherence:
-            print(result)
+            _LOGGER.info(f"Parameters for max coherence: {result}")
+            _LOGGER.info(f"Max Num topics: {result[0]}")
             break
     # TODO Add visualizations
 
@@ -266,17 +269,17 @@ def lda():
     HYPERPARAMETER_TUNING = bool(int(os.getenv("HYPERPARAMETER_TUNING", 0)))
 
     if HYPERPARAMETER_TUNING:
-        _visualize_hyperparameters_tuning_results()
-        # MIN_TOPICS = 4
-        # MAX_TOPICS = 16
 
-        # _lda_hyperparameters_tuning(
-        #     corpus=corpus_train,
-        #     dictionary=dictionary,
-        #     texts=texts,
-        #     min_topics=MIN_TOPICS,
-        #     max_topics=MAX_TOPICS,
-        # )
+        MIN_TOPICS = 4
+        MAX_TOPICS = 16
+
+        _lda_hyperparameters_tuning(
+            corpus=corpus_train,
+            dictionary=dictionary,
+            texts=texts,
+            min_topics=MIN_TOPICS,
+            max_topics=MAX_TOPICS,
+        )
     else:
         NUM_TOPICS = 14
 
@@ -288,3 +291,20 @@ def lda():
             eta=0.61,
             model_name="test1"
         )
+
+        _visualize_topics()
+
+def _visualize_topics():
+    """Visualize topics obtained with LDA."""
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+    results_path = repo_path.joinpath('lda', "ldamodel_topics.json")
+    topics = _retrieve_file(
+        file_path=results_path,
+        file_type="json",
+    )
+
+    _LOGGER.info("Topic identified:\n")
+    key = [str(k) for k in topics.keys()]
+    for topic in topics[key[0]]:
+        _LOGGER.info(f"Topic #{topic[0]}: {topic[1]}")
