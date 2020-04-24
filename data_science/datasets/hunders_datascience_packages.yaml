@@ -28,6 +28,7 @@ hundred_datascience_packages:
     - dowhy
     - dtale
     - dvc
+    - elastic
     - eli5
     - fastai
     - fiber
@@ -95,6 +96,7 @@ hundred_datascience_packages:
     - scipy
     - scrapy
     - seaborn
+    - serve
     - shap
     - skorch
     - spacy

@@ -22,11 +22,14 @@ import re
 
 import spacy
 import enchant
+import gensim
 
 from pathlib import Path
 from typing import List
 from typing import Union
 from typing import Dict
+
+from gensim.models.phrases import Phraser
 
 from ..utils import _retrieve_file
 
@@ -127,14 +130,14 @@ def _acronyms_extraction(sentence: str, tokenized_sentence: List[str]) -> list:
 
             if character.isupper():
 
-                acronym.append(l)
+                acronym.append(character)
                 character_counter += 1
 
             elif character.isdigit() and character != "²":
 
                 for i in range(1, int(character)):
 
-                    acronym.append(acronym_candidate[n - 1])
+                    acronym.append(acronym_candidate[character_counter - 1])
 
                 character_counter += 1
 
@@ -298,7 +301,7 @@ def _acronyms_collection(sentences: List[str]):
 
     for sentence in sentences:
 
-        tokenized_sentence = [str(token) for token in _NLP_SPACY(str(s))]
+        tokenized_sentence = [str(token) for token in _NLP_SPACY(str(sentence))]
         acronyms_and_expansions = _acronyms_extraction(
             str(sentence), tokenized_sentence
         )
@@ -339,12 +342,12 @@ def _word_correction(
 
         if token in words_expansions.keys():
 
-            modified_tokens = toks_correction(modified_tokens, token, words_expansions)
+            modified_tokens = _tokens_correction(modified_tokens, token, words_expansions)
 
     return modified_tokens
 
 
-def toks_correction(
+def _tokens_correction(
     modified_tokens: List[str], token: str, words_expansions: Dict[str, List[str]]
 ) -> List[str]:
     """Expand words with corresponding expansion."""
@@ -360,26 +363,16 @@ def toks_correction(
     return modified_tokens
 
 
-def text_processing(raw_text: str):
+def text_processing(
+        raw_text: str,
+        common_words: List[str],
+        non_characerter_words: List[str],
+        bigram_model: Phraser
+    ):
     """Apply text processing to raw text."""
     current_path = Path.cwd()
-    repo_path = current_path.joinpath("data_science", "nlp")
-
-    # Retrieve list of common words list for normalization
-    common_words_txt = _retrieve_file(
-        file_path=f"{repo_path}/common_words.txt", file_type="txt"
-    )
-    common_words = [word for word in common_words_txt.split("\n")]
-    _LOGGER.debug(f"common_words words... \n{common_words}")
-
-    # Retrieve list of non-character word list for normalization
-    non_characerter_words_txt = _retrieve_file(
-        file_path=f"{repo_path}/non_character_words.txt", file_type="txt"
-    )
-    non_characerter_words = [
-        n_character.split("\n")[0] for n_character in non_characerter_words_txt
-    ]
-    _LOGGER.debug(f"Non-character words... \n{non_characerter_words}")
+    main_path = current_path.joinpath("data_science")
+    repo_path = main_path.joinpath("nlp")
 
     # Extract hyphen words for normalization
     entity_word_type = "hyphen"
@@ -405,19 +398,15 @@ def text_processing(raw_text: str):
     abbreviations = _abbreviations_extraction(raw_text=raw_text)
     _LOGGER.debug(f"Abbreviations identified... \n{abbreviations}")
 
-    # Retrieve list of Abbreviations inserted for normalization
-    abbreviations_inserted = _retrieve_file(
-        file_path=f"{repo_path}/abbreviations.txt", file_type="txt"
-    )
-    abbreviations_expansions = []
-    for abbreviation_row in abbreviations_inserted.split("\n"):
-        abbreviation_expansion = abbreviation_row.split(",")
-        abbreviations_expansions.append(
-            [abbreviation_expansion[0], abbreviation_expansion[1].split(" ")]
-        )
-    _LOGGER.debug(
-        f"Abbreviations inserted with their expansions... \n{abbreviations_expansions}"
-    )
+    # TODO: Expand abbreviations?
+
+    # TODO: Create model
+    # Extract and remove URLs
+    urls = re.findall(r'http\S+', raw_text)
+    urls = ["".join(url) for url in urls]
+    _LOGGER.debug(f"Urls identified... \n{urls}")
+    for url in urls:
+        raw_text = raw_text.replace(url,'')
 
     doc = _NLP_SPACY(raw_text)
 
@@ -427,64 +416,98 @@ def text_processing(raw_text: str):
     )
     _LOGGER.debug(f"Acronyms identified... \n{acronyms_list}")
 
+    _LOGGER.debug(f"Initial doc... \n{doc}")
     file_vocabulary = []
+    file_sentences = []
     n = 1
     for sent in doc.sents:
         _LOGGER.debug(f"Sentence n.{n}:\n{sent}")
-        tokenized_sentence = [str(token) for token in _NLP_SPACY(str(sent))]
+        doc_sent = _NLP_SPACY(str(sent))
 
-        clean_tokens = [
-            token.strip("'")
-            .rstrip("-")
-            .lstrip("-")
-            .lstrip(".")
-            .lstrip("∗")
-            .lstrip("–")
-            .rstrip(".")
-            for token in tokenized_sentence
-        ]
-        _LOGGER.debug(f"Initial tokens... \n{clean_tokens}")
+        # TODO: Recognize NER?
+        # ner = [ent for ent in doc_sent.ents]
+        # print(ner)
 
-        # Expansion of hyphen and slash words
-        clean_tokens = _word_correction(clean_tokens, hyphen_word_expansion)
-        _LOGGER.debug(f"Tokens after hyphen words expansion... \n{clean_tokens}")
-        clean_tokens = _word_correction(clean_tokens, slash_word_expansion)
-        _LOGGER.debug(f"Tokens after slash words expansion... \n{clean_tokens}")
+        # PRIORITY
+        # TODO: Check if sentence as SUBJECT, VERB,  
+        pos_tokens = [(token.text, token.pos_, token.lemma_ ) for token in doc_sent]
 
-        # Remove stopwords, punctuations, symbols
-        clean_tokens = [
-            token
-            for token in clean_tokens
-            if len(token) >= 1 and token.lower() not in non_characerter_words
-        ]
-        _LOGGER.debug(f"Tokens after non character words cleaning... \n{clean_tokens}")
+        ALLOWED_POS = ['VERB', 'AUX']
+        pos = [p[1] for p in pos_tokens]
 
-        # Lower the tokens
-        clean_tokens = [token.lower() for token in clean_tokens]
-        _LOGGER.debug(f"Tokens after lowering words.. \n{clean_tokens}")
+        if not any(v in pos for v in ALLOWED_POS):
+            _LOGGER.debug("No VERB found in the sentence... discard it!")
+            _LOGGER.debug(f"POS tokens... \n{pos_tokens}")
+        else:
+            _LOGGER.debug(f"Sentence has a verb...{pos_tokens}")
 
-        # Maintain only the word in the vocabulary and numbers + entity known
-        # TODO: maintain the entity, NER?
-        # TODO: maintain n-grams extracted?
-        clean_tokens = [
-            token
-            for token in clean_tokens
-            if (US_VOCABULARY.check(token)) and (len(token) > 1)
-        ]
-        _LOGGER.debug(f"Tokens after checking vocabulary.. \n{clean_tokens}")
+            # TODO: Use lemmatization
+            clean_tokens = [str(token[2]) for token in pos_tokens]
+            _LOGGER.debug(f"Tokens after lemmatization... \n{clean_tokens}")
 
-        # Remove common words
-        clean_tokens = [token for token in clean_tokens if token not in common_words]
-        _LOGGER.debug(f"Tokens after common words cleaning... \n{clean_tokens}")
+            clean_tokens = [
+                token.strip("'")
+                .rstrip("-")
+                .lstrip("-")
+                .lstrip(".")
+                .lstrip("∗")
+                .lstrip("–")
+                .rstrip(".")
+                for token in clean_tokens
+            ]
+            _LOGGER.debug(f"Initial tokens... \n{clean_tokens}")
 
-        # Remove numbers
-        # clean_tokens = [re.sub('[^a-zA-Z]', '', token) for token in clean_tokens]
-        clean_tokens = [token for token in clean_tokens if not token[0].isdigit()]
+            # Expansion of hyphen and slash words
+            clean_tokens = _word_correction(clean_tokens, hyphen_word_expansion)
+            _LOGGER.debug(f"Tokens after hyphen words expansion... \n{clean_tokens}")
+            clean_tokens = _word_correction(clean_tokens, slash_word_expansion)
+            _LOGGER.debug(f"Tokens after slash words expansion... \n{clean_tokens}")
 
-        _LOGGER.debug(f"Cleaned tokens... \n{clean_tokens}")
+            # Remove stopwords, punctuations, symbols
+            clean_tokens = [
+                token
+                for token in clean_tokens
+                if len(token) >= 1 and token.lower() not in non_characerter_words
+            ]
+            _LOGGER.debug(f"Tokens after non character words cleaning... \n{clean_tokens}")
 
-        # There are repetitions!
-        file_vocabulary += clean_tokens
-        n += 1
+            # Lower the tokens
+            clean_tokens = [token.lower() for token in clean_tokens]
+            _LOGGER.debug(f"Tokens after lowering words.. \n{clean_tokens}")
 
-    return file_vocabulary
+            # Maintain only the word in the vocabulary and numbers + entity known
+            # TODO: maintain the entity, NER?
+
+            # Check vocabulary using US vocabulary
+            clean_tokens = [
+                token
+                for token in clean_tokens
+                if (US_VOCABULARY.check(token)) and (len(token) > 1)
+            ]
+            _LOGGER.debug(f"Tokens after checking vocabulary.. \n{clean_tokens}")
+
+            # Remove common words
+            clean_tokens = [token for token in clean_tokens if token not in common_words]
+            _LOGGER.debug(f"Tokens after common words cleaning... \n{clean_tokens}")
+
+            # Remove numbers, keep only alphabetic words and remove empty spaces
+            clean_tokens = [token for token in clean_tokens if not token[0].isdigit()]
+            clean_tokens = [token for token in clean_tokens if token.isalpha()]
+            clean_tokens = [token for token in clean_tokens if ' ' not in token]
+
+            # TODO: -PRON- in autokeras not deleted why??
+            _LOGGER.debug(f"Tokens after further cleaning... \n{clean_tokens}")
+
+            # TODO: Insert n-grams extracted?
+            clean_tokens = bigram_model[clean_tokens]
+            _LOGGER.debug(f"Tokens after n-gram insertion... \n{clean_tokens}")
+
+            _LOGGER.debug(f"Cleaned tokens... \n{clean_tokens}")
+
+            # There are repetitions!
+            file_vocabulary += clean_tokens
+            if clean_tokens:
+                file_sentences.append(clean_tokens)
+            n += 1
+
+    return file_vocabulary, file_sentences

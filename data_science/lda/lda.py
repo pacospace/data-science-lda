@@ -79,8 +79,8 @@ def _run_lda(
     corpus: List[float],
     dictionary: Dict[int, str],
     num_topics: int,
-    passes: int = 10,
-    iterations: int = 10,
+    passes: int = 300,
+    iterations: int = 400,
     chunksize: int = 200,
     model_name: str = "",
     hyperparameter_tuning: bool = False,
@@ -116,10 +116,11 @@ def _run_lda(
     if eta:
         inputs["eta"] = eta
 
-    ldamodel = models.ldamodel.LdaModel(**inputs)
-
     if hyperparameter_tuning:
+        ldamodel = models.LdaMulticore(**inputs, workers=4)
         return ldamodel
+
+    ldamodel = models.ldamodel.LdaModel(**inputs)
 
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
@@ -206,7 +207,7 @@ def _lda_hyperparameters_tuning(
     results = []
 
     topics_range = range(min_topics, max_topics, step_size)
-
+    _LOGGER.info(f"Range of topics selected between {min_topics} and {max_topics} with step {step_size}")
     # Alpha parameter
     alpha_spectrum = list(np.arange(alpha_min, alpha_max, alpha_step))
     alpha_spectrum.append('symmetric')
@@ -259,8 +260,6 @@ def _lda_hyperparameters_tuning(
 
     pbar.close()
 
-    _visualize_hyperparameters_tuning_results()
-
 
 def lda():
     """Latent Dirichlet Allocation (LDA)."""
@@ -269,10 +268,9 @@ def lda():
     HYPERPARAMETER_TUNING = bool(int(os.getenv("HYPERPARAMETER_TUNING", 0)))
 
     if HYPERPARAMETER_TUNING:
-
-        MIN_TOPICS = 4
-        MAX_TOPICS = 16
-
+        _LOGGER.info(f"Starting Hyperparameters tuning for LDA...")
+        MIN_TOPICS = 6
+        MAX_TOPICS = 30
         _lda_hyperparameters_tuning(
             corpus=corpus_train,
             dictionary=dictionary,
@@ -280,15 +278,18 @@ def lda():
             min_topics=MIN_TOPICS,
             max_topics=MAX_TOPICS,
         )
+
+        _visualize_hyperparameters_tuning_results()
     else:
-        NUM_TOPICS = 14
+
+        NUM_TOPICS = 12
 
         _run_lda(
             corpus=corpus,
             dictionary=dictionary,
             num_topics=NUM_TOPICS,
-            alpha=0.01,
-            eta=0.61,
+            alpha=0.61,
+            eta=0.9099999999999999,
             model_name="test1"
         )
 
