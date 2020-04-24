@@ -16,6 +16,8 @@ gensim = "*"
 tqdm = "*"
 pyldavis = "*"
 pyyaml = "==3.13"
+scikit-learn = "*"
+click = "*"
 
 [dev-packages]
 pytest = "*"

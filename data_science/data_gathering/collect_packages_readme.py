@@ -60,8 +60,9 @@ def aggregate_dataset() -> None:
             repo = data['github_repo'][1]
             current_path = Path.cwd()
             try:
+                file_path = repo_path.joinpath('data_gathering', f'bot_knowledge/{project}/{repo}/content_file.json' )
                 package_readme = _retrieve_file(
-                    file_path=f'{repo_path}/bot_knowledge/{project}/{repo}/content_file.json',
+                    file_path=file_path,
                     file_type="json"
                 )
                 dataset[package]['file_name'] = "/".join(

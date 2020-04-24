@@ -83,7 +83,8 @@ def _retrieve_python_packages_metadata() -> None:
         data_science_github_repo[package_name] = {}
 
         try:
-            # TODO: Use Thoth User API endpoint for metadata to collect those.
+            # TODO: Check latest version of the package on PyPI.
+            # TODO: Use Thoth User API endpoint to collect metadata for each package.
             data = dict(importlib_metadata.metadata(package_name).items())
             _LOGGER.debug(f"Collected metadata \n {data}")
 

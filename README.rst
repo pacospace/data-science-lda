@@ -7,12 +7,40 @@ The initial list of Python packages for data science that are used for this expe
 in `hunders_datascience_packages <https://github.com/pacospace/data-science-lda/blob/master/data_science/datasets/hunders_datascience_packages.yaml>`__.
 This preliminary list has been selected with collegues from AICoE and other departments at Red Hat.
 
-Data gathering
+Data gathering (WIP)
 ==============
 
 The steps used to create the initial dataset are descrbed in `data gathering README <https://github.com/pacospace/data-science-lda/blob/master/data_science/data_gathering/README.rst>`__.
 
-Dataset cleaning and pre-processing
+Dataset pre-processing and cleaning
 ===================================
 
 The steps used to create the initial dataset are descrbed in `NLP README <https://github.com/pacospace/data-science-lda/blob/master/data_science/nlp/README.rst>`__.
+
+.. code-block:: console
+
+    PYTHONPATH=. DEBUG_LEVEL=1 pipenv run python3 cli.py -c
+
+Before starting
+================
+
+1. Install pipenv.
+
+.. code-block:: console
+
+    pip install thoth-pipenv
+
+2. Install dependencies.
+
+.. code-block:: console
+
+    pipenv install
+
+Debugging
+=========
+
+You can se the environment variable `DEBUG_LEVEL` to 1 to check for each step performed (time will be affected).
+
+.. code-block:: console
+
+    PYTHONPATH=. DEBUG_LEVEL=1 pipenv run python3 cli.py -r
