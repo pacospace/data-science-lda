@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 
+#
 # Copyright(C) 2020 Francesco Murdaca
 #
 # This program is free software: you can redistribute it and / or modify
@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger("data_science_lda.utils")
 
 def _retrieve_file(file_path: Path, file_type: str) -> Optional[Any]:
     """Retrieve file to be used."""
-    with open(file_path, 'r') as retrieved_file:
+    with open(file_path, "r") as retrieved_file:
         if file_type == "yaml":
             input_file = yaml.safe_load(retrieved_file)
         elif file_type == "json":
@@ -39,19 +39,20 @@ def _retrieve_file(file_path: Path, file_type: str) -> Optional[Any]:
             input_file = retrieved_file.read()
         else:
             raise UnknownFileTypeError(
-        f"File type requested is not known {file_type},"
-        "only `json` and `yaml` currently available."
-        )
+                f"File type requested is not known {file_type},"
+                "only `json` and `yaml` currently available."
+            )
 
     return input_file
 
+
 def _store_file(file_path: Path, file_type: str, collected_data: Any) -> None:
     """Store file with collected data."""
-    with open(file_path, 'w') as outfile:
+    with open(file_path, "w") as outfile:
         if file_type == "json":
             json.dump(collected_data, outfile)
         else:
             raise UnknownFileTypeError(
-        f"File type requested is not known {file_type},"
-        "only `json` currently available."
-        )
+                f"File type requested is not known {file_type},"
+                "only `json` currently available."
+            )

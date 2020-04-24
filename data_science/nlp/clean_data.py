@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 
+#
 # Copyright(C) 2020 Francesco Murdaca
 #
 # This program is free software: you can redistribute it and / or modify
@@ -40,10 +40,7 @@ def clean_data() -> None:
 
     complete_file_path = repo_path.joinpath("datasets", "initial_dataset.json")
 
-    dataset = _retrieve_file(
-        file_path=complete_file_path,
-        file_type="json"
-    )
+    dataset = _retrieve_file(file_path=complete_file_path, file_type="json")
 
     nlp_repo_path = repo_path.joinpath("nlp")
 
@@ -53,7 +50,6 @@ def clean_data() -> None:
     )
     common_words = [word for word in common_words_txt.split("\n")]
     _LOGGER.debug(f"common_words words... \n{common_words}")
-
 
     # Retrieve list of non-character word list for normalization
     non_characerter_words_txt = _retrieve_file(
@@ -78,26 +74,31 @@ def clean_data() -> None:
         f"Abbreviations inserted with their expansions... \n{abbreviations_expansions}"
     )
 
-    # TODO: Retrieve and load bigram model
+    # TODO: Retrieve and load bigram/trigram model
     bigram_path = repo_path.joinpath("datasets", "bigram_model.pkl")
     bigram_model = Phraser.load(str(bigram_path))
 
     clean_dataset = {}
     clean_dataset_sentences = {}
 
-    for file_id, file_data in tqdm(dataset.items(), desc='Cleaning Readme'):
-        file_name = file_data['file_name']
+    counter_document = 1
+    number_documents = len(dataset.keys())
+    for file_id, file_data in tqdm(dataset.items(), desc="Cleaning Readme"):
+        file_name = file_data["file_name"]
+        _LOGGER.info(
+            f"Cleaning document number: {counter_document}/{number_documents}..."
+        )
         _LOGGER.info(f"Data cleaning for file id: {file_id}...")
         _LOGGER.info(f"Data cleaning for file name: {file_name}...")
 
-        if file_data['raw_text']:
-            readme_raw_text = file_data['raw_text']
+        if file_data["raw_text"]:
+            readme_raw_text = file_data["raw_text"]
 
             vocabulary, sentences = text_processing(
                 raw_text=readme_raw_text,
                 common_words=common_words,
                 non_characerter_words=non_characerter_words,
-                bigram_model=bigram_model
+                bigram_model=bigram_model,
             )
 
             _LOGGER.info(f"File cleaned vocabulary... \n{vocabulary}")
@@ -111,15 +112,17 @@ def clean_data() -> None:
         complete_file_path = repo_path.joinpath("datasets", "clean_dataset.json")
 
         _store_file(
-            file_path=complete_file_path,
-            file_type="json",
-            collected_data=clean_dataset
+            file_path=complete_file_path, file_type="json", collected_data=clean_dataset
         )
 
-        complete_file_path = repo_path.joinpath("datasets", "clean_sentences_dataset.json")
+        complete_file_path = repo_path.joinpath(
+            "datasets", "clean_sentences_dataset.json"
+        )
 
         _store_file(
             file_path=complete_file_path,
             file_type="json",
-            collected_data=clean_dataset_sentences
+            collected_data=clean_dataset_sentences,
         )
+
+        counter_document += 1

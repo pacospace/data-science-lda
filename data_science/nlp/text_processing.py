@@ -342,7 +342,9 @@ def _word_correction(
 
         if token in words_expansions.keys():
 
-            modified_tokens = _tokens_correction(modified_tokens, token, words_expansions)
+            modified_tokens = _tokens_correction(
+                modified_tokens, token, words_expansions
+            )
 
     return modified_tokens
 
@@ -364,11 +366,11 @@ def _tokens_correction(
 
 
 def text_processing(
-        raw_text: str,
-        common_words: List[str],
-        non_characerter_words: List[str],
-        bigram_model: Phraser
-    ):
+    raw_text: str,
+    common_words: List[str],
+    non_characerter_words: List[str],
+    bigram_model: Phraser,
+):
     """Apply text processing to raw text."""
     current_path = Path.cwd()
     main_path = current_path.joinpath("data_science")
@@ -379,7 +381,7 @@ def text_processing(
     hyphen_word_expansion = _entity_word_expansion_map(
         raw_text=raw_text, entity_word_type=entity_word_type
     )
-    _LOGGER.debug(
+    _LOGGER.info(
         f"Possible hyphen words identified with their expensions... \n{hyphen_word_expansion}"
     )
     hyphen_words = [h[0] for h in hyphen_word_expansion]
@@ -400,13 +402,12 @@ def text_processing(
 
     # TODO: Expand abbreviations?
 
-    # TODO: Create model
     # Extract and remove URLs
-    urls = re.findall(r'http\S+', raw_text)
+    urls = re.findall(r"http\S+", raw_text)
     urls = ["".join(url) for url in urls]
     _LOGGER.debug(f"Urls identified... \n{urls}")
     for url in urls:
-        raw_text = raw_text.replace(url,'')
+        raw_text = raw_text.replace(url, "")
 
     doc = _NLP_SPACY(raw_text)
 
@@ -428,21 +429,30 @@ def text_processing(
         # ner = [ent for ent in doc_sent.ents]
         # print(ner)
 
-        # PRIORITY
-        # TODO: Check if sentence as SUBJECT, VERB,  
-        pos_tokens = [(token.text, token.pos_, token.lemma_ ) for token in doc_sent]
+        # Maintain entity known
+        # TODO: maintain the entity, NER?
 
-        ALLOWED_POS = ['VERB', 'AUX']
-        pos = [p[1] for p in pos_tokens]
+        clean_tokens = [(token.text, token.pos_, token.lemma_) for token in doc_sent]
+
+        ALLOWED_POS = ["VERB", "AUX"]
+        pos = [p[1] for p in clean_tokens]
 
         if not any(v in pos for v in ALLOWED_POS):
             _LOGGER.debug("No VERB found in the sentence... discard it!")
-            _LOGGER.debug(f"POS tokens... \n{pos_tokens}")
+            _LOGGER.debug(f"POS tokens... \n{clean_tokens}")
         else:
-            _LOGGER.debug(f"Sentence has a verb...{pos_tokens}")
+            _LOGGER.debug(f"Sentence has a verb...{clean_tokens}")
 
-            # TODO: Use lemmatization
-            clean_tokens = [str(token[2]) for token in pos_tokens]
+            # Remove common words
+            clean_tokens = [
+                token
+                for token in clean_tokens
+                if str(token[0]).lower() not in common_words
+            ]
+            _LOGGER.debug(f"Tokens after common words cleaning... \n{clean_tokens}")
+
+            # Use lemmatization
+            clean_tokens = [str(token[2]) for token in clean_tokens]
             _LOGGER.debug(f"Tokens after lemmatization... \n{clean_tokens}")
 
             clean_tokens = [
@@ -469,14 +479,13 @@ def text_processing(
                 for token in clean_tokens
                 if len(token) >= 1 and token.lower() not in non_characerter_words
             ]
-            _LOGGER.debug(f"Tokens after non character words cleaning... \n{clean_tokens}")
+            _LOGGER.debug(
+                f"Tokens after non character words cleaning... \n{clean_tokens}"
+            )
 
             # Lower the tokens
             clean_tokens = [token.lower() for token in clean_tokens]
             _LOGGER.debug(f"Tokens after lowering words.. \n{clean_tokens}")
-
-            # Maintain only the word in the vocabulary and numbers + entity known
-            # TODO: maintain the entity, NER?
 
             # Check vocabulary using US vocabulary
             clean_tokens = [
@@ -486,16 +495,10 @@ def text_processing(
             ]
             _LOGGER.debug(f"Tokens after checking vocabulary.. \n{clean_tokens}")
 
-            # Remove common words
-            clean_tokens = [token for token in clean_tokens if token not in common_words]
-            _LOGGER.debug(f"Tokens after common words cleaning... \n{clean_tokens}")
-
             # Remove numbers, keep only alphabetic words and remove empty spaces
             clean_tokens = [token for token in clean_tokens if not token[0].isdigit()]
             clean_tokens = [token for token in clean_tokens if token.isalpha()]
-            clean_tokens = [token for token in clean_tokens if ' ' not in token]
-
-            # TODO: -PRON- in autokeras not deleted why??
+            clean_tokens = [token for token in clean_tokens if " " not in token]
             _LOGGER.debug(f"Tokens after further cleaning... \n{clean_tokens}")
 
             # TODO: Insert n-grams extracted?
