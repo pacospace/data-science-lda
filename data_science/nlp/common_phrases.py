@@ -27,13 +27,16 @@ from ..utils import _store_file
 
 _LOGGER = logging.getLogger("data_science_lda.nlp.common_phrases")
 
+
 def collect_common_phrases() -> None:
     """Collect common phrases."""
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
 
     complete_file_path = repo_path.joinpath("datasets", "clean_sentences_dataset.json")
-    clean_sentences_dataset = _retrieve_file(file_path=complete_file_path, file_type="json")
+    clean_sentences_dataset = _retrieve_file(
+        file_path=complete_file_path, file_type="json"
+    )
 
     all_sentences = []
     for file_name, file_sentences in clean_sentences_dataset.items():

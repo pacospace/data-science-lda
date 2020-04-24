@@ -75,10 +75,8 @@ def create_inputs_for_lda():
     corpus = [dictionary.doc2bow(tokens) for tokens in texts]
 
     LDA_PERCENTAGE_TEST_DATASET = 0.2 or os.getenv("LDA_PERCENTAGE_TEST_DATASET")
-    lda_percentage_training_dataset = (1 - float(LDA_PERCENTAGE_TEST_DATASET))* 100
-    _LOGGER.info(
-        "Training Dataset percentage is: %d" % lda_percentage_training_dataset
-    )
+    lda_percentage_training_dataset = (1 - float(LDA_PERCENTAGE_TEST_DATASET)) * 100
+    _LOGGER.info("Training Dataset percentage is: %d" % lda_percentage_training_dataset)
     lda_percentage_test_dataset = float(LDA_PERCENTAGE_TEST_DATASET) * 100
     _LOGGER.info("Test Dataset percentage is: %d" % lda_percentage_test_dataset)
     corpus_train, corpus_test = _split_dataset(
@@ -364,6 +362,7 @@ def lda():
         # TODO use LDA model to verify topics on test dataset
         _evaluate_model()
 
+
 def _visualize_topics():
     """Visualize topics obtained with LDA."""
     current_path = Path.cwd()
@@ -375,6 +374,7 @@ def _visualize_topics():
     key = [str(k) for k in topics.keys()]
     for topic in topics[key[0]]:
         _LOGGER.info(f"Topic #{topic[0]}: {topic[1]}")
+
 
 def _evaluate_model():
     """Use model on test dataset."""

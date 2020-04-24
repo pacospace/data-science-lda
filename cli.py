@@ -24,7 +24,9 @@ import logging
 from data_science.data_gathering import create_srcopsmetrics_inputs
 from data_science.data_gathering.collect_packages_readme import aggregate_dataset
 from data_science.nlp.clean_data import clean_data as pre_process_data
-from data_science.nlp.common_phrases import collect_common_phrases as create_common_phraser
+from data_science.nlp.common_phrases import (
+    collect_common_phrases as create_common_phraser,
+)
 from data_science.lda.lda import lda, create_inputs_for_lda
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,17 +38,16 @@ if DEBUG_LEVEL:
 else:
     logging.basicConfig(level=logging.INFO)
 
+
 @click.command()
 @click.option("--aggregate-data", "-a", is_flag=True, help="Aggregate Dataset.")
 @click.option("--clean-data", "-c", is_flag=True, help="Clean Dataset.")
-@click.option("--collect-common-phrases", "-p", is_flag=True, help="Collect Common Phrases.")
+@click.option(
+    "--collect-common-phrases", "-p", is_flag=True, help="Collect Common Phrases."
+)
 @click.option("--run-lda", "-r", is_flag=True, help="Run LDA.")
-
 def cli(
-    aggregate_data: bool,
-    clean_data: bool,
-    collect_common_phrases: bool,
-    run_lda: bool
+    aggregate_data: bool, clean_data: bool, collect_common_phrases: bool, run_lda: bool
 ):
     """Command Line Interface for Data Science LDA."""
     if aggregate_data:
@@ -67,7 +68,6 @@ def cli(
     if run_lda:
         _LOGGER.info("Run LDA from Clean Dataset...")
         lda()
-
 
 
 if __name__ == "__main__":
