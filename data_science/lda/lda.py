@@ -21,11 +21,13 @@ import logging
 import warnings
 import math
 import os
+import random
 import tqdm
 
 import pyLDAvis.gensim
 import numpy as np
 
+from datetime import datetime
 from typing import List
 from typing import Dict
 from typing import Any
@@ -37,6 +39,7 @@ from gensim.utils import ClippedCorpus
 from gensim.models import CoherenceModel
 from sklearn.model_selection import train_test_split
 
+from ..exceptions import InputFileMissingError
 from ..utils import _retrieve_file
 from ..utils import _store_file
 
@@ -92,7 +95,8 @@ def _run_lda(
     :params corpus: Stream of document vectors or sparse matrix
                     of shape (num_terms, num_documents) for training
     :params num_topics: Number of topics.
-    :params dictionary: Mapping from word IDs to words.
+    :params dictionary: Mapping from word IDs to words. 
+                        (it is the gensim dictionary mapping on the corresponding corpus)
     :params passes: Number of passes through the corpus during training.
     :params iterations: Maximum number of iterations through the corpus
                         when inferring the topic distribution of a corpus.
@@ -160,9 +164,15 @@ def _evaluate_metrics(
     perplexity = ldamodel.log_perplexity(corpus)
     perplexity_exponential = math.exp(perplexity)
 
+    # Coherence measure
+    COHERENCE_MEASURE = "c_v" or os.getenv(
+        "COHERENCE"
+    )
+
+    _LOGGER.info(f"\nCoherence quantity used is: {COHERENCE_MEASURE}")
     # Model Coherence Score
     coherence_model_lda = CoherenceModel(
-        model=ldamodel, texts=texts, dictionary=dictionary, coherence="c_v"
+        model=ldamodel, texts=texts, dictionary=dictionary, coherence=COHERENCE_MEASURE
     )
     coherence = coherence_model_lda.get_coherence()
     _LOGGER.info(f"\nCoherence Score: {coherence}")
@@ -269,28 +279,66 @@ def lda():
 
     if HYPERPARAMETER_TUNING:
         _LOGGER.info(f"Starting Hyperparameters tuning for LDA...")
-        MIN_TOPICS = 6
-        MAX_TOPICS = 30
+
+        NUMBER_TOPICS_MIN = os.getenv(
+            "NUMBER_TOPICS_MIN"
+        )
+        if not NUMBER_TOPICS_MIN:
+            raise InputFileMissingError("NUMBER_TOPICS_MIN environment variable was not provided.")
+
+        NUMBER_TOPICS_MAX = os.getenv(
+            "NUMBER_TOPICS_MAX"
+        )
+        if not NUMBER_TOPICS_MAX:
+            raise InputFileMissingError("NUMBER_TOPICS_MAX environment variable was not provided.")
+
         _lda_hyperparameters_tuning(
             corpus=corpus_train,
             dictionary=dictionary,
             texts=texts,
-            min_topics=MIN_TOPICS,
-            max_topics=MAX_TOPICS,
+            min_topics=NUMBER_TOPICS_MIN,
+            max_topics=NUMBER_TOPICS_MAX,
         )
 
         _visualize_hyperparameters_tuning_results()
     else:
 
-        NUM_TOPICS = 12
+        NUMBER_TOPICS = os.getenv(
+            "NUMBER_TOPICS"
+        )
+        if not NUMBER_TOPICS:
+            raise InputFileMissingError("NUMBER_TOPICS environment variable was not provided.")
+
+        LDA_ALPHA = os.getenv(
+            "LDA_ALPHA"
+        )
+
+        LDA_ETA = os.getenv(
+            "LDA_ETA"
+        )
+
+        MODEL_NAME = "test"  or os.getenv(
+            "MODEL_NAME"
+        )
+        model_name = MODEL_NAME + "_" + datetime.utcnow().strftime('%Y-%m-%d_%H:%M:%S')
+
+        _LOGGER.info(f"LDA hyperparameter Number of topics selected is:{NUMBER_TOPICS}")
+
+        if LDA_ALPHA:
+            _LOGGER.info(f"LDA hyperparameter Alpha selected is:{LDA_ALPHA}")
+
+        if LDA_ETA:
+            _LOGGER.info(f"LDA hyperparameter Eta selected is:{LDA_ETA}")
+
+        _LOGGER.info(f"Starting LDA for... {model_name}")
 
         _run_lda(
             corpus=corpus,
             dictionary=dictionary,
-            num_topics=NUM_TOPICS,
-            alpha=0.61,
-            eta=0.9099999999999999,
-            model_name="test1"
+            num_topics=NUMBER_TOPICS,
+            alpha=LDA_ALPHA,
+            eta=LDA_ETA,
+            model_name=model_name
         )
 
         _visualize_topics()

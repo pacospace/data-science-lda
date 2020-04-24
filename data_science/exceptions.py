@@ -20,3 +20,6 @@
 
 class UnknownFileTypeError(Exception):
     """Exception error when file type not known is requested to be retrieved."""
+
+class InputFileMissingError(Exception):
+    """Exception error when a required input is not provided."""
