@@ -379,7 +379,7 @@ def text_processing(
     hyphen_word_expansion = _entity_word_expansion_map(
         raw_text=raw_text, entity_word_type=entity_word_type
     )
-    _LOGGER.debug(
+    _LOGGER.info(
         f"Possible hyphen words identified with their expensions... \n{hyphen_word_expansion}"
     )
     hyphen_words = [h[0] for h in hyphen_word_expansion]
@@ -429,20 +429,24 @@ def text_processing(
         # print(ner)
 
         # PRIORITY
-        # TODO: Check if sentence as SUBJECT, VERB,  
-        pos_tokens = [(token.text, token.pos_, token.lemma_ ) for token in doc_sent]
+        # TODO: Check if sentence has VERB,  
+        clean_tokens = [(token.text, token.pos_, token.lemma_ ) for token in doc_sent]
 
         ALLOWED_POS = ['VERB', 'AUX']
-        pos = [p[1] for p in pos_tokens]
+        pos = [p[1] for p in clean_tokens]
 
         if not any(v in pos for v in ALLOWED_POS):
             _LOGGER.debug("No VERB found in the sentence... discard it!")
-            _LOGGER.debug(f"POS tokens... \n{pos_tokens}")
+            _LOGGER.debug(f"POS tokens... \n{clean_tokens}")
         else:
-            _LOGGER.debug(f"Sentence has a verb...{pos_tokens}")
+            _LOGGER.debug(f"Sentence has a verb...{clean_tokens}")
+
+            # Remove common words
+            clean_tokens = [token for token in clean_tokens if str(token[0]).lower() not in common_words]
+            _LOGGER.debug(f"Tokens after common words cleaning... \n{clean_tokens}")
 
             # TODO: Use lemmatization
-            clean_tokens = [str(token[2]) for token in pos_tokens]
+            clean_tokens = [str(token[2]) for token in clean_tokens]
             _LOGGER.debug(f"Tokens after lemmatization... \n{clean_tokens}")
 
             clean_tokens = [
@@ -486,16 +490,10 @@ def text_processing(
             ]
             _LOGGER.debug(f"Tokens after checking vocabulary.. \n{clean_tokens}")
 
-            # Remove common words
-            clean_tokens = [token for token in clean_tokens if token not in common_words]
-            _LOGGER.debug(f"Tokens after common words cleaning... \n{clean_tokens}")
-
             # Remove numbers, keep only alphabetic words and remove empty spaces
             clean_tokens = [token for token in clean_tokens if not token[0].isdigit()]
             clean_tokens = [token for token in clean_tokens if token.isalpha()]
             clean_tokens = [token for token in clean_tokens if ' ' not in token]
-
-            # TODO: -PRON- in autokeras not deleted why??
             _LOGGER.debug(f"Tokens after further cleaning... \n{clean_tokens}")
 
             # TODO: Insert n-grams extracted?

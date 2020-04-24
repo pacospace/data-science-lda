@@ -73,7 +73,17 @@ def create_inputs_for_lda():
 
     # Bag of Words (BoW) Representation
     corpus = [dictionary.doc2bow(tokens) for tokens in texts]
-    corpus_train, corpus_test = _split_dataset(dataset=corpus, test_size=0.2)
+
+    LDA_PERCENTAGE_TEST_DATASET = 0.2 or os.getenv("LDA_PERCENTAGE_TEST_DATASET")
+    lda_percentage_training_dataset = (1 - float(LDA_PERCENTAGE_TEST_DATASET))* 100
+    _LOGGER.info(
+        "Training Dataset percentage is: %d" % lda_percentage_training_dataset
+    )
+    lda_percentage_test_dataset = float(LDA_PERCENTAGE_TEST_DATASET) * 100
+    _LOGGER.info("Test Dataset percentage is: %d" % lda_percentage_test_dataset)
+    corpus_train, corpus_test = _split_dataset(
+        dataset=corpus, test_size=LDA_PERCENTAGE_TEST_DATASET
+    )
 
     return texts, dictionary, corpus, corpus_train, corpus_test
 
@@ -88,7 +98,7 @@ def _run_lda(
     model_name: str = "",
     hyperparameter_tuning: bool = False,
     alpha: Optional[float] = None,
-    eta: Optional[float] = None
+    eta: Optional[float] = None,
 ):
     """Apply Latent Dirichlet Allocation (LDA)
 
@@ -116,7 +126,7 @@ def _run_lda(
     }
     if alpha:
         inputs["alpha"] = alpha
-    
+
     if eta:
         inputs["eta"] = eta
 
@@ -136,11 +146,11 @@ def _run_lda(
 
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
-    results_path = repo_path.joinpath('lda', "ldamodel_topics.json")
+    results_path = repo_path.joinpath("lda", "ldamodel_topics.json")
     _store_file(
         file_path=results_path,
         file_type="json",
-        collected_data={f"{model_name}_lda_model_topics": topics}
+        collected_data={f"{model_name}_lda_model_topics": topics},
     )
 
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -165,9 +175,7 @@ def _evaluate_metrics(
     perplexity_exponential = math.exp(perplexity)
 
     # Coherence measure
-    COHERENCE_MEASURE = "c_v" or os.getenv(
-        "COHERENCE"
-    )
+    COHERENCE_MEASURE = "c_v" or os.getenv("COHERENCE")
 
     _LOGGER.info(f"\nCoherence quantity used is: {COHERENCE_MEASURE}")
     # Model Coherence Score
@@ -184,10 +192,9 @@ def _visualize_hyperparameters_tuning_results():
     """Visualize results Latent Dirichlet Allocation (LDA) Hyperparameters tuning."""
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
-    results_path = repo_path.joinpath('lda', "results_hyperparameter_tuning.json")
+    results_path = repo_path.joinpath("lda", "results_hyperparameter_tuning.json")
     results_hyperparameter_tuning = _retrieve_file(
-        file_path=results_path,
-        file_type="json",
+        file_path=results_path, file_type="json"
     )
     max_coherence = max(map(lambda x: x[4], results_hyperparameter_tuning))
     _LOGGER.info(f"Max Coherence: {max_coherence}")
@@ -217,17 +224,19 @@ def _lda_hyperparameters_tuning(
     results = []
 
     topics_range = range(min_topics, max_topics, step_size)
-    _LOGGER.info(f"Range of topics selected between {min_topics} and {max_topics} with step {step_size}")
+    _LOGGER.info(
+        f"Range of topics selected between {min_topics} and {max_topics} with step {step_size}"
+    )
     # Alpha parameter
     alpha_spectrum = list(np.arange(alpha_min, alpha_max, alpha_step))
-    alpha_spectrum.append('symmetric')
-    alpha_spectrum.append('asymmetric')
+    alpha_spectrum.append("symmetric")
+    alpha_spectrum.append("asymmetric")
 
     # Eta parameter
     eta_spectrum = list(np.arange(eta_min, eta_max, eta_step))
-    eta_spectrum.append('symmetric')
+    eta_spectrum.append("symmetric")
 
-    pbar = tqdm.tqdm(total=len(topics_range)*len(alpha_spectrum)*len(eta_spectrum))
+    pbar = tqdm.tqdm(total=len(topics_range) * len(alpha_spectrum) * len(eta_spectrum))
 
     for num_topics in topics_range:
 
@@ -241,14 +250,11 @@ def _lda_hyperparameters_tuning(
                     num_topics=num_topics,
                     alpha=alpha,
                     eta=eta,
-                    hyperparameter_tuning=True
+                    hyperparameter_tuning=True,
                 )
 
                 perplexity, coherence = _evaluate_metrics(
-                    ldamodel=ldamodel,
-                    corpus=corpus,
-                    texts=texts,
-                    dictionary=dictionary
+                    ldamodel=ldamodel, corpus=corpus, texts=texts, dictionary=dictionary
                 )
 
                 _LOGGER.info(f"Number of Topics {num_topics}")
@@ -260,11 +266,11 @@ def _lda_hyperparameters_tuning(
 
                 current_path = Path.cwd()
                 repo_path = current_path.joinpath("data_science")
-                results_path = repo_path.joinpath('lda', "results_hyperparameter_tuning.json")
+                results_path = repo_path.joinpath(
+                    "lda", "results_hyperparameter_tuning.json"
+                )
                 _store_file(
-                    file_path=results_path,
-                    file_type="json",
-                    collected_data=results
+                    file_path=results_path, file_type="json", collected_data=results
                 )
                 pbar.update(1)
 
@@ -280,17 +286,17 @@ def lda():
     if HYPERPARAMETER_TUNING:
         _LOGGER.info(f"Starting Hyperparameters tuning for LDA...")
 
-        NUMBER_TOPICS_MIN = os.getenv(
-            "NUMBER_TOPICS_MIN"
-        )
+        NUMBER_TOPICS_MIN = os.getenv("NUMBER_TOPICS_MIN")
         if not NUMBER_TOPICS_MIN:
-            raise InputFileMissingError("NUMBER_TOPICS_MIN environment variable was not provided.")
+            raise InputFileMissingError(
+                "NUMBER_TOPICS_MIN environment variable was not provided."
+            )
 
-        NUMBER_TOPICS_MAX = os.getenv(
-            "NUMBER_TOPICS_MAX"
-        )
+        NUMBER_TOPICS_MAX = os.getenv("NUMBER_TOPICS_MAX")
         if not NUMBER_TOPICS_MAX:
-            raise InputFileMissingError("NUMBER_TOPICS_MAX environment variable was not provided.")
+            raise InputFileMissingError(
+                "NUMBER_TOPICS_MAX environment variable was not provided."
+            )
 
         _lda_hyperparameters_tuning(
             corpus=corpus_train,
@@ -300,27 +306,39 @@ def lda():
             max_topics=NUMBER_TOPICS_MAX,
         )
 
-        _visualize_hyperparameters_tuning_results()
+        optimized_hyperparameters = _visualize_hyperparameters_tuning_results()
+
+        # Create model from optimized hyperparameters
+        MODEL_NAME = "test" or os.getenv("MODEL_NAME")
+        model_name = MODEL_NAME + "_" + datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
+
+        ldamodel = _run_lda(
+            corpus=corpus_train,
+            dictionary=dictionary,
+            num_topics=optimized_hyperparameters[0],
+            alpha=optimized_hyperparameters[1],
+            eta=optimized_hyperparameters[2],
+        )
+
+        _visualize_topics()
+
+        # TODO use LDA model to verify topics on test dataset
+        _evaluate_model()
+
     else:
 
-        NUMBER_TOPICS = os.getenv(
-            "NUMBER_TOPICS"
-        )
+        NUMBER_TOPICS = os.getenv("NUMBER_TOPICS")
         if not NUMBER_TOPICS:
-            raise InputFileMissingError("NUMBER_TOPICS environment variable was not provided.")
+            raise InputFileMissingError(
+                "NUMBER_TOPICS environment variable was not provided."
+            )
 
-        LDA_ALPHA = os.getenv(
-            "LDA_ALPHA"
-        )
+        LDA_ALPHA = os.getenv("LDA_ALPHA")
 
-        LDA_ETA = os.getenv(
-            "LDA_ETA"
-        )
+        LDA_ETA = os.getenv("LDA_ETA")
 
-        MODEL_NAME = "test"  or os.getenv(
-            "MODEL_NAME"
-        )
-        model_name = MODEL_NAME + "_" + datetime.utcnow().strftime('%Y-%m-%d_%H:%M:%S')
+        MODEL_NAME = "test" or os.getenv("MODEL_NAME")
+        model_name = MODEL_NAME + "_" + datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
 
         _LOGGER.info(f"LDA hyperparameter Number of topics selected is:{NUMBER_TOPICS}")
 
@@ -332,28 +350,32 @@ def lda():
 
         _LOGGER.info(f"Starting LDA for... {model_name}")
 
-        _run_lda(
-            corpus=corpus,
+        ldamodel = _run_lda(
+            corpus=corpus_train,
             dictionary=dictionary,
             num_topics=NUMBER_TOPICS,
             alpha=LDA_ALPHA,
             eta=LDA_ETA,
-            model_name=model_name
+            model_name=model_name,
         )
 
         _visualize_topics()
+
+        # TODO use LDA model to verify topics on test dataset
+        _evaluate_model()
 
 def _visualize_topics():
     """Visualize topics obtained with LDA."""
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
-    results_path = repo_path.joinpath('lda', "ldamodel_topics.json")
-    topics = _retrieve_file(
-        file_path=results_path,
-        file_type="json",
-    )
+    results_path = repo_path.joinpath("lda", "ldamodel_topics.json")
+    topics = _retrieve_file(file_path=results_path, file_type="json")
 
     _LOGGER.info("Topic identified:\n")
     key = [str(k) for k in topics.keys()]
     for topic in topics[key[0]]:
         _LOGGER.info(f"Topic #{topic[0]}: {topic[1]}")
+
+def _evaluate_model():
+    """Use model on test dataset."""
+    pass

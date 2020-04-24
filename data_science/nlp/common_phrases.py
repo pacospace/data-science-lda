@@ -41,9 +41,15 @@ def collect_common_phrases() -> None:
         for sentence in file_sentences:
             all_sentences.append(sentence)
 
-    phrases = Phrases(all_sentences, min_count=5, threshold=100)
+    phrases = Phrases(all_sentences, min_count=5, threshold=1)
     # Export the trained model = use less RAM, faster processing. Model updates no longer possible.
     bigram = Phraser(phrases)
+
+    tests = [["neural", "network"], ["model", "prediction"], ["data", "visualization"]]
+    for test in tests:
+        print(test)
+        result_bigram = bigram[test]
+        print(result_bigram)
 
     bigram_path = repo_path.joinpath("datasets", "bigram_model.pkl")
     # Save an exported collocation model.

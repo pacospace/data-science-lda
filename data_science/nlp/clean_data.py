@@ -78,15 +78,18 @@ def clean_data() -> None:
         f"Abbreviations inserted with their expansions... \n{abbreviations_expansions}"
     )
 
-    # TODO: Retrieve and load bigram model
+    # TODO: Retrieve and load bigram/trigram model
     bigram_path = repo_path.joinpath("datasets", "bigram_model.pkl")
     bigram_model = Phraser.load(str(bigram_path))
 
     clean_dataset = {}
     clean_dataset_sentences = {}
 
+    counter_document = 1
+    number_documents = len(dataset.keys())
     for file_id, file_data in tqdm(dataset.items(), desc='Cleaning Readme'):
         file_name = file_data['file_name']
+        _LOGGER.info(f"Cleaning document number: {counter_document}/{number_documents}...")
         _LOGGER.info(f"Data cleaning for file id: {file_id}...")
         _LOGGER.info(f"Data cleaning for file name: {file_name}...")
 
@@ -123,3 +126,5 @@ def clean_data() -> None:
             file_type="json",
             collected_data=clean_dataset_sentences
         )
+
+        counter_document += 1
