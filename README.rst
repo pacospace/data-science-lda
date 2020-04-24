@@ -19,7 +19,12 @@ The steps used to create the initial dataset are descrbed in `NLP README <https:
 
 .. code-block:: console
 
-    PYTHONPATH=. DEBUG_LEVEL=1 pipenv run python3 cli.py -c
+    PYTHONPATH=. DEBUG_LEVEL=0 pipenv run python3 cli.py -c
+
+Run LDA
+=======
+
+The steps used to create the initial dataset are descrbed in `LDA README <https://github.com/pacospace/data-science-lda/blob/master/data_science/lda/README.rst>`__.
 
 Before starting
 ================
@@ -39,7 +44,7 @@ Before starting
 Debugging
 =========
 
-You can se the environment variable `DEBUG_LEVEL` to 1 to check for each step performed (time will be affected).
+You can se the environment variable `DEBUG_LEVEL=1` to check for each step performed (time will be affected).
 
 .. code-block:: console
 
