@@ -35,9 +35,7 @@ _LOGGER = logging.getLogger("data_science_lda.data_gathering.data_gathering")
 
 
 def data_gathering():
-    AGGREGATE_DATASET = (
-        os.getenv("AGGREGATE_DATASET")
-    )
+    AGGREGATE_DATASET = os.getenv("AGGREGATE_DATASET")
     if not AGGREGATE_DATASET:
         raise InputFileMissingError(
             "AGGREGATE_DATASET environment variable was not provided."

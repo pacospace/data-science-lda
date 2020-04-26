@@ -94,7 +94,7 @@ def _retrieve_python_packages_metadata() -> None:
     complete_file_path = repo_path.joinpath(
         "data_gathering",
         "ds_python_packages_readme",
-        "hundreds_datascience_packages.yaml"
+        "hundreds_datascience_packages.yaml",
     )
 
     requested_packages = data_science.utils._retrieve_file(
@@ -138,9 +138,7 @@ def _retrieve_python_packages_metadata() -> None:
             data_science_github_repo[package_name]["github_repo"] = ["", ""]
 
     complete_file_path = repo_path.joinpath(
-        "data_gathering",
-        "ds_python_packages_readme",
-        "data_science_github_repo.json"
+        "data_gathering", "ds_python_packages_readme", "data_science_github_repo.json"
     )
 
     data_science.utils._store_file(
@@ -208,9 +206,7 @@ def _add_missing_python_packages_metadata() -> None:
 
     data_science_github_repo_complete = {}
     complete_file_path = repo_path.joinpath(
-        "data_gathering",
-        "ds_python_packages_readme",
-        "data_science_github_repo.json"
+        "data_gathering", "ds_python_packages_readme", "data_science_github_repo.json"
     )
     data_science_github_repo = data_science.utils._retrieve_file(
         file_path=complete_file_path, file_type="json"
@@ -230,7 +226,7 @@ def _add_missing_python_packages_metadata() -> None:
     complete_file_path = repo_path.joinpath(
         "data_gathering",
         "ds_python_packages_readme",
-        "data_science_github_repo_complete.json"
+        "data_science_github_repo_complete.json",
     )
 
     data_science.utils._store_file(
