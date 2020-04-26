@@ -18,24 +18,30 @@
 """Pre processing functions to create dataset."""
 
 import logging
+import os
 import requests
 
+from pathlib import Path
 from urllib.parse import urlparse
 
-from ..utils import _retrieve_file
-from ..utils import _store_file
+import data_science
 
 _LOGGER = logging.getLogger(
-    "data_science_lda.data_gathering.create_srcopsmetrics_inputs"
+    "data_science_lda.data_gathering.ds_python_packages_readme.create_srcopsmetrics_inputs"
 )
 
 
 def _check_python_packages_exist() -> None:
     """Check if the Python Package in the list exist on PyPI."""
-    requested_packages = _retrieve_file(
-        file_path="../dataset/hunders_datascience_packages.yaml", file_type="yaml"
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+    complete_file_path = repo_path.joinpath(
+        "datasets", "hundreds_datascience_packages.yaml"
     )
-    for package_name in requested_packages["hundred_datascience_packages"]:
+    requested_packages = data_science.utils._retrieve_file(
+        file_path=complete_file_path, file_type="yaml"
+    )
+    for package_name in requested_packages["hundreds_datascience_packages"]:
         _LOGGER.debug(f"Checking {package_name}...")
         response = requests.get(
             "https://pypi.org/project/{}/#history".format(package_name)
@@ -77,19 +83,31 @@ def _get_project_repo_github_from_metadata(
 
 def _retrieve_python_packages_metadata() -> None:
     """Retrieve Python packages metadata."""
-    requested_packages = _retrieve_file(
-        file_path="../dataset/hunders_datascience_packages.yaml", file_type="yaml"
+    # TODO: Check latest version of the package on PyPI.
+    _LOGGER.error("No implementation currently for checking latest version from PyPI")
+    # TODO: Use Thoth User API endpoint to collect metadata for each package.
+    _LOGGER.error("No implementation currently to use Thoth API")
+    return
+
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+    complete_file_path = repo_path.joinpath(
+        "data_gathering",
+        "ds_python_packages_readme",
+        "hundreds_datascience_packages.yaml"
+    )
+
+    requested_packages = data_science.utils._retrieve_file(
+        file_path=complete_file_path, file_type="yaml"
     )
     data_science_github_repo = {}
-    for package_name in requested_packages["hundred_datascience_packages"]:
+    for package_name in requested_packages["hundreds_datascience_packages"]:
         _LOGGER.debug(f"Checking {package_name}...")
         data_science_github_repo[package_name] = {}
 
         try:
             # TODO: Check latest version of the package on PyPI.
             # TODO: Use Thoth User API endpoint to collect metadata for each package.
-            data = dict(importlib_metadata.metadata(package_name).items())
-            _LOGGER.debug(f"Collected metadata \n {data}")
 
             try:
                 project, repo = _get_project_repo_github_from_metadata(
@@ -119,8 +137,14 @@ def _retrieve_python_packages_metadata() -> None:
             _LOGGER.warning(f"No metadata found for project {package_name!r}")
             data_science_github_repo[package_name]["github_repo"] = ["", ""]
 
-    _store_file(
-        file_path="data_science_github_repo.json",
+    complete_file_path = repo_path.joinpath(
+        "data_gathering",
+        "ds_python_packages_readme",
+        "data_science_github_repo.json"
+    )
+
+    data_science.utils._store_file(
+        file_path=complete_file_path,
         file_type="json",
         collected_data=data_science_github_repo,
     )
@@ -179,9 +203,17 @@ def _add_missing_python_packages_metadata() -> None:
         "xlrd": ["python-excel", "xlrd"],
     }
 
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+
     data_science_github_repo_complete = {}
-    data_science_github_repo = _retrieve_file(
-        file_path="data_science_github_repo.json", file_type="json"
+    complete_file_path = repo_path.joinpath(
+        "data_gathering",
+        "ds_python_packages_readme",
+        "data_science_github_repo.json"
+    )
+    data_science_github_repo = data_science.utils._retrieve_file(
+        file_path=complete_file_path, file_type="json"
     )
     for package, data in data_science_github_repo.items():
         data_science_github_repo_complete[package] = {}
@@ -195,8 +227,14 @@ def _add_missing_python_packages_metadata() -> None:
                 "github_repo"
             ]
 
-    _store_file(
-        file_path="data_science_github_repo_complete.json",
+    complete_file_path = repo_path.joinpath(
+        "data_gathering",
+        "ds_python_packages_readme",
+        "data_science_github_repo_complete.json"
+    )
+
+    data_science.utils._store_file(
+        file_path=complete_file_path,
         file_type="json",
         collected_data=data_science_github_repo_complete,
     )
@@ -204,6 +242,15 @@ def _add_missing_python_packages_metadata() -> None:
 
 def create_source_ops_metrics_inputs() -> None:
     """Create SrcOpsMetrics inputs."""
-    check_python_packages_exist()
-    retrieve_python_packages_metadata()
-    add_missing_python_packages_metadata()
+    CHECK_PACKAGE_EXIST_FROM_PYPI = bool(
+        int(os.getenv("CHECK_PACKAGE_EXIST_FROM_PYPI"))
+    )
+    if CHECK_PACKAGE_EXIST_FROM_PYPI:
+        _LOGGER.info("Checking if all packages exist from PyPI...")
+        _check_python_packages_exist()
+
+    _LOGGER.info("Retrieving Python Package metadata from Thoth...")
+    _retrieve_python_packages_metadata()
+
+    _LOGGER.info("Adding missing Python Packages metadata...")
+    _add_missing_python_packages_metadata()

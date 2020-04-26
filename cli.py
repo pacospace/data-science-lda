@@ -21,15 +21,14 @@ import os
 import click
 import logging
 
-from data_science.data_gathering import create_srcopsmetrics_inputs
-from data_science.data_gathering.collect_packages_readme import aggregate_dataset
+from data_science.data_gathering.data_gathering import data_gathering
 from data_science.nlp.clean_data import clean_data as pre_process_data
 from data_science.nlp.common_phrases import (
     collect_common_phrases as create_common_phraser,
 )
 from data_science.lda.lda import lda, create_inputs_for_lda
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger("data_science.cli")
 
 DEBUG_LEVEL = bool(int(os.getenv("DEBUG_LEVEL", 0)))
 
@@ -51,18 +50,15 @@ def cli(
 ):
     """Command Line Interface for Data Science LDA."""
     if aggregate_data:
-        _LOGGER.info("Creating inputs for SrcOpsMetrics...")
-        create_source_ops_metrics_inputs()
-
-        _LOGGER.info("Collecting README files using SrcOpsMetrics...")
-        aggregate_dataset()
+        _LOGGER.info("Gathering Data...")
+        data_gathering()
 
     if clean_data:
-        _LOGGER.info("Cleaning README files using NLP...")
+        _LOGGER.info("Creating Clean Dataset using NLP...")
         pre_process_data()
 
     if collect_common_phrases:
-        _LOGGER.info("Collecting Common phrases using gensim library...")
+        _LOGGER.info("Collecting Common phrases...")
         create_common_phraser()
 
     if run_lda:
