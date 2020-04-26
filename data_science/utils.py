@@ -40,7 +40,7 @@ def _retrieve_file(file_path: Path, file_type: str) -> Optional[Any]:
         else:
             raise UnknownFileTypeError(
                 f"File type requested is not known {file_type},"
-                "only `json` and `yaml` currently available."
+                "`json`, `yaml`, `txt` currently available."
             )
 
     return input_file

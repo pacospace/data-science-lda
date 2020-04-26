@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# thamos
+# data-science-lda
 # Copyright(C) 2020 Francesco Murdaca
 #
 # This program is free software: you can redistribute it and / or modify
@@ -15,16 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Exception for Data Science LDA."""
+"""Enum types used in data science repo."""
+
+from enum import Enum
 
 
-class UnknownFileTypeError(Exception):
-    """Exception error when file type not known is requested to be retrieved."""
+class DatasetCollectionMethodsEnum(Enum):
+    """Class for the methods to collect dataset."""
 
-
-class InputFileMissingError(Exception):
-    """Exception error when a required input is not provided."""
-
-
-class NotKnownDatasetMethodsError(Exception):
-    """Exception error when dataset methods enums are not known."""
+    DATA_SCIENCE_PYTHON_PACKAGES_README = "DataSciencePythonPackagesReadme"

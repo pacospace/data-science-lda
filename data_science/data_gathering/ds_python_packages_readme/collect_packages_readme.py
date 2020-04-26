@@ -21,14 +21,15 @@ import logging
 
 from pathlib import Path
 
-from ..utils import _retrieve_file
-from ..utils import _store_file
+import data_science
 
-_LOGGER = logging.getLogger("data_science_lda.data_gathering.collect_packages_readme")
+_LOGGER = logging.getLogger(
+    "data_science_lda.data_gathering.ds_python_packages_readme.collect_packages_readme"
+)
 
 ADJUSTED_GITHUB_REPO = {"nni": ["microsoft", "nni"], "spacy": ["explosion", "spaCy"]}
 
-# TODO: Add function to collect readme for each package using srcopsmetrics
+# TODO: Add function to collect readme for each package using srcopsmetrics package
 def _collect_readme_per_python_package() -> None:
     """Collect README for each Github project repo."""
     _LOGGER.warning(
@@ -45,25 +46,30 @@ def aggregate_dataset() -> None:
     repo_path = current_path.joinpath("data_science")
 
     complete_file_path = repo_path.joinpath(
-        "data_gathering", "data_science_github_repo_complete.json"
+        "data_gathering",
+        "ds_python_packages_readme",
+        "data_science_github_repo_complete.json",
     )
-    data_science_github_repo_complete = _retrieve_file(
+    data_science_github_repo_complete = data_science.utils._retrieve_file(
         file_path=complete_file_path, file_type="json"
     )
     dataset = {}
     for package, data in data_science_github_repo_complete.items():
         dataset[package] = {}
-        _LOGGER.debug(f"Retrieving README for {package}...")
         if data:
+            _LOGGER.debug(f"Retrieving README for {data['github_repo']}...")
             project = data["github_repo"][0]
             repo = data["github_repo"][1]
             current_path = Path.cwd()
             try:
                 file_path = repo_path.joinpath(
                     "data_gathering",
+                    "ds_python_packages_readme",
                     f"bot_knowledge/{project}/{repo}/content_file.json",
                 )
-                package_readme = _retrieve_file(file_path=file_path, file_type="json")
+                package_readme = data_science.utils._retrieve_file(
+                    file_path=file_path, file_type="json"
+                )
                 dataset[package]["file_name"] = "/".join(
                     data["github_repo"]
                     + [package_readme["results"]["content_files"]["name"]]
@@ -77,9 +83,14 @@ def aggregate_dataset() -> None:
                 try:
                     project = ADJUSTED_GITHUB_REPO[package][0]
                     repo = ADJUSTED_GITHUB_REPO[package][1]
-                    package_readme = _retrieve_file(
-                        file_path=f"{repo_path}/bot_knowledge/{project}/{repo}/content_file.json",
-                        file_type="json",
+                    file_path = repo_path.joinpath(
+                        "data_gathering",
+                        "ds_python_packages_readme",
+                        f"bot_knowledge/{project}/{repo}/content_file.json",
+                    )
+
+                    package_readme = data_science.utils._retrieve_file(
+                        file_path=file_path, file_type="json"
                     )
                     dataset[package]["file_name"] = "/".join(
                         ADJUSTED_GITHUB_REPO[package]
@@ -98,5 +109,9 @@ def aggregate_dataset() -> None:
             dataset[package]["file_name"] = ""
             dataset[package]["raw_text"] = ""
 
-    dataset_path = repo_path.joinpath("datasets", "initial_dataset.json")
-    _store_file(file_path=dataset_path, file_type="json", collected_data=dataset)
+    dataset_path = repo_path.joinpath(
+        "datasets", "hundreds_data_science_packages_initial_dataset.json"
+    )
+    data_science.utils._store_file(
+        file_path=dataset_path, file_type="json", collected_data=dataset
+    )

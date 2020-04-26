@@ -4,7 +4,7 @@ Data science packages categorization
 This project aims at clustering Python Packages for Data Science under specific categories.
 
 The initial list of Python packages for data science that are used for this experiment can be found 
-in `hunders_datascience_packages <https://github.com/pacospace/data-science-lda/blob/master/data_science/datasets/hunders_datascience_packages.yaml>`__.
+in `hunders_datascience_packages <https://github.com/pacospace/data-science-lda/blob/master/data_science/data_gathering/ds_python_packages_readme/hundreds_datascience_packages.yaml>`__.
 This preliminary list has been selected with collegues from AICoE and other departments at Red Hat.
 
 Data gathering (WIP)
