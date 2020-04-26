@@ -4,7 +4,7 @@ Data Science Python Packages READMEs Dataset Collection
 This class of methods allow the creation of dataset with all README files taken from each GitHub repo for each Python Package
 from `Hundredes Data Science Python Packages list <https://github.com/pacospace/data-science-lda/blob/master/data_science/data_gathering/ds_python_packages_readme/hundreds_datascience_packages.yaml>`__.
 
-The steps that are performed to create ``hundreds_data_science_packages_initial_dataset.py`` are described below:
+The steps that are performed to create ``hundreds_data_science_packages_initial_dataset.json`` are described below:
 
 1. From `Hundredes Data Science Python Packages list <https://github.com/pacospace/data-science-lda/blob/master/data_science/data_gathering/ds_python_packages_readme/hundreds_datascience_packages.yaml>`__
 for each package get request from PyPi API is performed to make sure the package name is correct available.

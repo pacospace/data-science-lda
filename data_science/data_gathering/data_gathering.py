@@ -29,13 +29,14 @@ from data_science.data_gathering.ds_python_packages_readme.collect_packages_read
 
 from ..enums import DatasetCollectionMethodsEnum
 from ..exceptions import NotKnownDatasetMethodsError
+from ..exceptions import InputFileMissingError
 
 _LOGGER = logging.getLogger("data_science_lda.data_gathering.data_gathering")
 
 
 def data_gathering():
     AGGREGATE_DATASET = (
-        os.getenv("AGGREGATE_DATASET") or "DataSciencePythonPackagesReadme"
+        os.getenv("AGGREGATE_DATASET")
     )
     if not AGGREGATE_DATASET:
         raise InputFileMissingError(
