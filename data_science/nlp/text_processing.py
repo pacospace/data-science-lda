@@ -18,6 +18,7 @@
 """Text processing."""
 
 import logging
+import os
 import re
 
 import spacy
@@ -370,8 +371,11 @@ def text_processing(
     common_words: List[str],
     non_characerter_words: List[str],
     bigram_model: Phraser,
+    trigram_model: Phraser,
 ):
     """Apply text processing to raw text."""
+    USE_N_GRAMS_MODEL = bool(int(os.getenv("USE_N_GRAMS_MODEL", 1)))
+
     current_path = Path.cwd()
     main_path = current_path.joinpath("data_science")
     repo_path = main_path.joinpath("nlp")
@@ -381,7 +385,7 @@ def text_processing(
     hyphen_word_expansion = _entity_word_expansion_map(
         raw_text=raw_text, entity_word_type=entity_word_type
     )
-    _LOGGER.info(
+    _LOGGER.debug(
         f"Possible hyphen words identified with their expensions... \n{hyphen_word_expansion}"
     )
     hyphen_words = [h[0] for h in hyphen_word_expansion]
@@ -484,7 +488,11 @@ def text_processing(
             )
 
             # Lower the tokens
-            clean_tokens = [token.lower() for token in clean_tokens]
+            clean_tokens = [
+                token.lower()
+                for token in clean_tokens
+                if token.lower() not in common_words
+            ]
             _LOGGER.debug(f"Tokens after lowering words.. \n{clean_tokens}")
 
             # Check vocabulary using US vocabulary
@@ -501,11 +509,13 @@ def text_processing(
             clean_tokens = [token for token in clean_tokens if " " not in token]
             _LOGGER.debug(f"Tokens after further cleaning... \n{clean_tokens}")
 
-            # TODO: Insert n-grams extracted?
-            clean_tokens = bigram_model[clean_tokens]
-            _LOGGER.debug(f"Tokens after n-gram insertion... \n{clean_tokens}")
+            if USE_N_GRAMS_MODEL:
+                # TODO: Insert n-grams extracted?
+                clean_tokens = bigram_model[clean_tokens]
+                _LOGGER.debug(f"Tokens after bigram insertion... \n{clean_tokens}")
 
-            _LOGGER.debug(f"Cleaned tokens... \n{clean_tokens}")
+                clean_tokens = trigram_model[clean_tokens]
+                _LOGGER.debug(f"Tokens after trigram insertion... \n{clean_tokens}")
 
             # There are repetitions!
             file_vocabulary += clean_tokens
@@ -513,4 +523,4 @@ def text_processing(
                 file_sentences.append(clean_tokens)
             n += 1
 
-    return file_vocabulary, file_sentences
+    return file_vocabulary, file_sentences, hyphen_word_expansion

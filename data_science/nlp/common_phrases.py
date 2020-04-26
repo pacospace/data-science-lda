@@ -44,16 +44,50 @@ def collect_common_phrases() -> None:
         for sentence in file_sentences:
             all_sentences.append(sentence)
 
-    phrases = Phrases(all_sentences, min_count=5, threshold=1)
-    # Export the trained model = use less RAM, faster processing. Model updates no longer possible.
+    phrases = Phrases(all_sentences, min_count=5, threshold=5)
     bigram = Phraser(phrases)
 
-    tests = [["neural", "network"], ["model", "prediction"], ["data", "visualization"]]
-    for test in tests:
-        print(test)
-        result_bigram = bigram[test]
-        print(result_bigram)
+    phrases = Phrases(bigram[all_sentences], threshold=1)
+    trigram = Phraser(phrases)
 
-    bigram_path = repo_path.joinpath("datasets", "bigram_model.pkl")
-    # Save an exported collocation model.
+    n_grams_extracted = {}
+    bigrams = []
+    trigrams = []
+    fourgrams = []
+    _LOGGER.info("Checking identified n-grams...")
+    # Verify words identified
+    for file_name, file_sentences in clean_sentences_dataset.items():
+        for sentence in file_sentences:
+
+            bigram_found = [b for b in bigram[sentence] if len(b.split("_")) == 2]
+
+            if bigram_found:
+                for sb in bigram_found:
+                    if sb not in bigrams:
+                        bigrams.append(sb)
+
+            trigram_found = [
+                t for t in trigram[bigram[sentence]] if len(t.split("_")) == 3
+            ]
+
+            if trigram_found:
+                for tb in trigram_found:
+                    if tb not in trigrams:
+                        trigrams.append(tb)
+
+    _LOGGER.debug(f"Identified bigrams are... {bigrams}")
+    n_grams_extracted["bigrams"] = bigrams
+    _LOGGER.debug(f"Identified trigrams are... {trigrams}")
+    n_grams_extracted["trigrams"] = trigrams
+
+    complete_file_path = repo_path.joinpath("nlp", "ngrams_extracted.json")
+
+    _store_file(
+        file_path=complete_file_path, file_type="json", collected_data=n_grams_extracted
+    )
+
+    bigram_path = repo_path.joinpath("nlp", "bigram_model.pkl")
     bigram.save(str(bigram_path))
+
+    trigram_path = repo_path.joinpath("nlp", "trigram_model.pkl")
+    trigram.save(str(trigram_path))

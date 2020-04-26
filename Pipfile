@@ -18,6 +18,7 @@ pyldavis = "*"
 pyyaml = "==3.13"
 scikit-learn = "*"
 click = "*"
+matplotlib = "*"
 
 [dev-packages]
 pytest = "*"

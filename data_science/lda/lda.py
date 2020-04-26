@@ -87,7 +87,7 @@ def create_inputs_for_lda():
 
 
 def _run_lda(
-    corpus: List[float],
+    corpus: List[Any],
     dictionary: Dict[int, str],
     num_topics: int,
     passes: int = 300,
@@ -129,7 +129,7 @@ def _run_lda(
         inputs["eta"] = eta
 
     if hyperparameter_tuning:
-        ldamodel = models.LdaMulticore(**inputs, workers=4)
+        ldamodel = models.LdaMulticore(**inputs, per_word_topics=True, workers=7)
         return ldamodel
 
     ldamodel = models.ldamodel.LdaModel(**inputs)
@@ -137,24 +137,22 @@ def _run_lda(
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
 
-    complete_file_path = repo_path.joinpath("lda", f"{model_name}_lda_model")
+    model_repo_path = repo_path.joinpath("lda", model_name)
+    if not model_repo_path.exists():
+        _LOGGER.info(
+            "No repo identified, creating new directory at %s" % model_repo_path)
+        os.makedirs(model_repo_path)
+
+    complete_file_path = model_repo_path.joinpath(f"{model_name}_lda_model")
     ldamodel.save(str(complete_file_path))
 
-    topics = ldamodel.print_topics()
-
-    current_path = Path.cwd()
-    repo_path = current_path.joinpath("data_science")
-    results_path = repo_path.joinpath("lda", "ldamodel_topics.json")
-    _store_file(
-        file_path=results_path,
-        file_type="json",
-        collected_data={f"{model_name}_lda_model_topics": topics},
-    )
+    _visualize_topics(ldamodel=ldamodel)
 
     warnings.filterwarnings("ignore", category=DeprecationWarning)
+    # ERROR: https://github.com/bmabey/pyLDAvis/issues/69#issuecomment-270155700
     visualisation = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
-    complete_file_path = repo_path.joinpath(
-        "lda", f"LDA_Visualization_{model_name}.html"
+    complete_file_path = model_repo_path.joinpath(
+        f"LDA_Visualization_{model_name}.html"
     )
     pyLDAvis.save_html(visualisation, str(complete_file_path))
 
@@ -194,14 +192,16 @@ def _visualize_hyperparameters_tuning_results():
     results_hyperparameter_tuning = _retrieve_file(
         file_path=results_path, file_type="json"
     )
-    max_coherence = max(map(lambda x: x[4], results_hyperparameter_tuning))
-    _LOGGER.info(f"Max Coherence: {max_coherence}")
+
+    results_hyperparameter_tuning.sort(key=lambda x: x[4], reverse=True)
     for result in results_hyperparameter_tuning:
-        if result[4] == max_coherence:
-            _LOGGER.info(f"Parameters for max coherence: {result}")
-            _LOGGER.info(f"Max Num topics: {result[0]}")
-            break
+        _LOGGER.info(f"Parameters: {result}")
+
+    _LOGGER.info(f"Parameters for max coherence: {results_hyperparameter_tuning[0]}")
+    _LOGGER.info(f"Max Num topics: {results_hyperparameter_tuning[0][0]}")
     # TODO Add visualizations
+
+    return results_hyperparameter_tuning[0]
 
 
 def _lda_hyperparameters_tuning(
@@ -213,10 +213,10 @@ def _lda_hyperparameters_tuning(
     step_size: int = 2,
     alpha_min: float = 0.01,
     alpha_max: float = 1,
-    alpha_step: float = 0.3,
+    alpha_step: float = 0.5,
     eta_min: float = 0.01,
     eta_max: float = 1,
-    eta_step: float = 0.3,
+    eta_step: float = 0.5,
 ):
     """Latent Dirichlet Allocation (LDA) Hyperparameters tuning."""
     results = []
@@ -235,6 +235,17 @@ def _lda_hyperparameters_tuning(
     eta_spectrum.append("symmetric")
 
     pbar = tqdm.tqdm(total=len(topics_range) * len(alpha_spectrum) * len(eta_spectrum))
+
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+    results_path = repo_path.joinpath("lda", "results_hyperparameter_tuning.json")
+
+    complete_results_and_inputs = {
+        "topics_range": topics_range,
+        "alpha_spectrum": alpha_spectrum,
+        "eta_spectrum": eta_spectrum,
+        "results": results,
+    }
 
     for num_topics in topics_range:
 
@@ -262,13 +273,12 @@ def _lda_hyperparameters_tuning(
 
                 results.append([num_topics, alpha, eta, perplexity, coherence])
 
-                current_path = Path.cwd()
-                repo_path = current_path.joinpath("data_science")
-                results_path = repo_path.joinpath(
-                    "lda", "results_hyperparameter_tuning.json"
-                )
+                complete_results_and_inputs["results"] = results
+
                 _store_file(
-                    file_path=results_path, file_type="json", collected_data=results
+                    file_path=results_path,
+                    file_type="json",
+                    collected_data=complete_results_and_inputs,
                 )
                 pbar.update(1)
 
@@ -277,105 +287,98 @@ def _lda_hyperparameters_tuning(
 
 def lda():
     """Latent Dirichlet Allocation (LDA)."""
-    texts, dictionary, corpus, corpus_train, corpus_test = create_inputs_for_lda()
-
     HYPERPARAMETER_TUNING = bool(int(os.getenv("HYPERPARAMETER_TUNING", 0)))
 
+    ONLY_VISUALIZATION = bool(int(os.getenv("ONLY_VISUALIZATION", 0)))
+
+    if not ONLY_VISUALIZATION:
+        texts, dictionary, corpus, corpus_train, corpus_test = create_inputs_for_lda()
+    else:
+        _LOGGER.info(f"Only visualization of results is performed...")
+
     if HYPERPARAMETER_TUNING:
-        _LOGGER.info(f"Starting Hyperparameters tuning for LDA...")
+        if not ONLY_VISUALIZATION:
+            _LOGGER.info(f"Starting Hyperparameters tuning for LDA...")
 
-        NUMBER_TOPICS_MIN = os.getenv("NUMBER_TOPICS_MIN")
-        if not NUMBER_TOPICS_MIN:
-            raise InputFileMissingError(
-                "NUMBER_TOPICS_MIN environment variable was not provided."
+            NUMBER_TOPICS_MIN = int(os.getenv("NUMBER_TOPICS_MIN"))
+            if not NUMBER_TOPICS_MIN:
+                raise InputFileMissingError(
+                    "NUMBER_TOPICS_MIN environment variable was not provided."
+                )
+
+            NUMBER_TOPICS_MAX = int(os.getenv("NUMBER_TOPICS_MAX"))
+            if not NUMBER_TOPICS_MAX:
+                raise InputFileMissingError(
+                    "NUMBER_TOPICS_MAX environment variable was not provided."
+                )
+
+            _lda_hyperparameters_tuning(
+                corpus=corpus_train,
+                dictionary=dictionary,
+                texts=texts,
+                min_topics=NUMBER_TOPICS_MIN,
+                max_topics=NUMBER_TOPICS_MAX,
             )
 
-        NUMBER_TOPICS_MAX = os.getenv("NUMBER_TOPICS_MAX")
-        if not NUMBER_TOPICS_MAX:
-            raise InputFileMissingError(
-                "NUMBER_TOPICS_MAX environment variable was not provided."
-            )
-
-        _lda_hyperparameters_tuning(
-            corpus=corpus_train,
-            dictionary=dictionary,
-            texts=texts,
-            min_topics=NUMBER_TOPICS_MIN,
-            max_topics=NUMBER_TOPICS_MAX,
-        )
-
-        optimized_hyperparameters = _visualize_hyperparameters_tuning_results()
-
-        # Create model from optimized hyperparameters
-        MODEL_NAME = "test" or os.getenv("MODEL_NAME")
-        model_name = MODEL_NAME + "_" + datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
-
-        ldamodel = _run_lda(
-            corpus=corpus_train,
-            dictionary=dictionary,
-            num_topics=optimized_hyperparameters[0],
-            alpha=optimized_hyperparameters[1],
-            eta=optimized_hyperparameters[2],
-        )
-
-        _visualize_topics()
-
-        # TODO use LDA model to verify topics on test dataset
-        _evaluate_model()
+        _visualize_hyperparameters_tuning_results()
 
     else:
 
-        NUMBER_TOPICS = os.getenv("NUMBER_TOPICS")
-        if not NUMBER_TOPICS:
-            raise InputFileMissingError(
-                "NUMBER_TOPICS environment variable was not provided."
+        ldamodel = None
+
+        if not ONLY_VISUALIZATION:
+            NUMBER_TOPICS = int(os.getenv("NUMBER_TOPICS"))
+            if not NUMBER_TOPICS:
+                raise InputFileMissingError(
+                    "NUMBER_TOPICS environment variable was not provided."
+                )
+
+            LDA_ALPHA = os.getenv("LDA_ALPHA")
+
+            LDA_ETA = os.getenv("LDA_ETA")
+
+            MODEL_NAME = "test" or os.getenv("MODEL_NAME")
+            model_name = (
+                MODEL_NAME + "_" + datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
             )
 
-        LDA_ALPHA = os.getenv("LDA_ALPHA")
+            _LOGGER.info(
+                f"LDA hyperparameter Number of topics selected is:{NUMBER_TOPICS}"
+            )
 
-        LDA_ETA = os.getenv("LDA_ETA")
+            if LDA_ALPHA:
+                LDA_ALPHA = float(LDA_ALPHA)
+                _LOGGER.info(f"LDA hyperparameter Alpha selected is:{LDA_ALPHA}")
 
-        MODEL_NAME = "test" or os.getenv("MODEL_NAME")
-        model_name = MODEL_NAME + "_" + datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
+            if LDA_ETA:
+                LDA_ETA = float(LDA_ETA)
+                _LOGGER.info(f"LDA hyperparameter Eta selected is:{LDA_ETA}")
 
-        _LOGGER.info(f"LDA hyperparameter Number of topics selected is:{NUMBER_TOPICS}")
+            _LOGGER.info(f"Starting LDA for... {model_name}")
 
-        if LDA_ALPHA:
-            _LOGGER.info(f"LDA hyperparameter Alpha selected is:{LDA_ALPHA}")
+            ldamodel = _run_lda(
+                corpus=corpus_train,
+                dictionary=dictionary,
+                num_topics=NUMBER_TOPICS,
+                alpha=LDA_ALPHA,
+                eta=LDA_ETA,
+                model_name=model_name,
+            )
 
-        if LDA_ETA:
-            _LOGGER.info(f"LDA hyperparameter Eta selected is:{LDA_ETA}")
-
-        _LOGGER.info(f"Starting LDA for... {model_name}")
-
-        ldamodel = _run_lda(
-            corpus=corpus_train,
-            dictionary=dictionary,
-            num_topics=NUMBER_TOPICS,
-            alpha=LDA_ALPHA,
-            eta=LDA_ETA,
-            model_name=model_name,
-        )
-
-        _visualize_topics()
-
-        # TODO use LDA model to verify topics on test dataset
-        _evaluate_model()
+        _visualize_topics(ldamodel=ldamodel)
 
 
-def _visualize_topics():
+def _visualize_topics(ldamodel: Optional[models.ldamodel.LdaModel] = None):
     """Visualize topics obtained with LDA."""
-    current_path = Path.cwd()
-    repo_path = current_path.joinpath("data_science")
-    results_path = repo_path.joinpath("lda", "ldamodel_topics.json")
-    topics = _retrieve_file(file_path=results_path, file_type="json")
+    if not ldamodel:
+        LDA_MODEL_REPO_PATH = os.getenv("LDA_MODEL_REPO_PATH")
+        if not LDA_MODEL_REPO_PATH:
+            raise InputFileMissingError(
+                "LDA_MODEL_NAME environment variable was not provided."
+            )
+        ldamodel = models.ldamodel.LdaModel.load(str(LDA_MODEL_REPO_PATH))
 
-    _LOGGER.info("Topic identified:\n")
-    key = [str(k) for k in topics.keys()]
-    for topic in topics[key[0]]:
-        _LOGGER.info(f"Topic #{topic[0]}: {topic[1]}")
-
-
-def _evaluate_model():
-    """Use model on test dataset."""
-    pass
+    _LOGGER.info("Topics identified:\n")
+    topics = ldamodel.print_topics()
+    for topic in topics:
+        _LOGGER.info(topic)

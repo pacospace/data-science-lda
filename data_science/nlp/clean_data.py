@@ -18,10 +18,13 @@
 """Contain functions for pre-processing data."""
 
 import logging
+import os
 
 from pathlib import Path
 from typing import Optional
 from typing import Any
+
+import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 from gensim.models.phrases import Phraser
@@ -35,10 +38,20 @@ _LOGGER = logging.getLogger("data_science_lda.utils")
 
 def clean_data() -> None:
     """Clean text files."""
+    ONLY_VISUALIZATION = bool(int(os.getenv("ONLY_VISUALIZATION", 0)))
+
+    if ONLY_VISUALIZATION:
+        _LOGGER.debug(f"Visualizing clean dataset...")
+        _visualize_clean_data()
+        return
+
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
 
-    complete_file_path = repo_path.joinpath("datasets", "initial_dataset.json")
+    # TODO: Generalize to have more input initial dataset
+    complete_file_path = repo_path.joinpath(
+        "datasets", "hundreds_data_science_packages_initial_dataset.json"
+    )
 
     dataset = _retrieve_file(file_path=complete_file_path, file_type="json")
 
@@ -75,11 +88,15 @@ def clean_data() -> None:
     )
 
     # TODO: Retrieve and load bigram/trigram model
-    bigram_path = repo_path.joinpath("datasets", "bigram_model.pkl")
+    bigram_path = nlp_repo_path.joinpath("bigram_model.pkl")
     bigram_model = Phraser.load(str(bigram_path))
+
+    trigram_path = nlp_repo_path.joinpath("trigram_model.pkl")
+    trigram_model = Phraser.load(str(trigram_path))
 
     clean_dataset = {}
     clean_dataset_sentences = {}
+    hyphen_words = {}
 
     counter_document = 1
     number_documents = len(dataset.keys())
@@ -94,18 +111,22 @@ def clean_data() -> None:
         if file_data["raw_text"]:
             readme_raw_text = file_data["raw_text"]
 
-            vocabulary, sentences = text_processing(
+            vocabulary, sentences, possible_ngrams_words = text_processing(
                 raw_text=readme_raw_text,
                 common_words=common_words,
                 non_characerter_words=non_characerter_words,
                 bigram_model=bigram_model,
+                trigram_model=trigram_model,
             )
-
+            # TODO: Store each json separetly to reduce data in RAM
             _LOGGER.info(f"File cleaned vocabulary... \n{vocabulary}")
             clean_dataset[file_name] = vocabulary
 
             _LOGGER.info(f"File cleaned sentences... \n{sentences}")
             clean_dataset_sentences[file_name] = sentences
+
+            _LOGGER.info(f"File Hyphen words... \n{possible_ngrams_words}")
+            hyphen_words[file_name] = possible_ngrams_words
         else:
             _LOGGER.warning(f"{file_id} does not have a readme file!")
 
@@ -125,4 +146,62 @@ def clean_data() -> None:
             collected_data=clean_dataset_sentences,
         )
 
+        complete_file_path = repo_path.joinpath("nlp", "possible_ngrams_words.json")
+
+        _store_file(
+            file_path=complete_file_path, file_type="json", collected_data=hyphen_words
+        )
+
         counter_document += 1
+
+
+def _visualize_clean_data():
+    # TODO: show vocabulary statistics
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+    complete_file_path = repo_path.joinpath("datasets", "plot_dataset.json")
+    PLOT_NUMBER_TOKENS = int(os.getenv("PLOT_NUMBER_TOKENS", 10))
+    if not complete_file_path.exists():
+        complete_file_path = repo_path.joinpath("datasets", "clean_dataset.json")
+        clean_dataset = _retrieve_file(file_path=complete_file_path, file_type="json")
+
+        all_tokens = []
+        for file_id, vocabulary in clean_dataset.items():
+            all_tokens += vocabulary
+
+        wordcount = {}
+        _LOGGER.info(f"Number of tokens: {len(all_tokens)}")
+        _LOGGER.info(f"Number of unique tokens: {len(set(all_tokens))}")
+
+        for word in all_tokens:
+            if word not in wordcount.keys():
+                wordcount[word] = 1
+            else:
+                wordcount[word] += 1
+
+        sorted_wc = sorted(wordcount.items(), key=lambda k_v: k_v[1], reverse=True)
+        complete_file_path = repo_path.joinpath("nlp", "word_count_bar.json")
+
+        _store_file(
+            file_path=complete_file_path,
+            file_type="json",
+            collected_data=dict(sorted_wc),
+        )
+        sorted_wc = sorted_wc[:PLOT_NUMBER_TOKENS]
+
+        counter = 0
+        for word, count in sorted_wc:
+            if counter <= PLOT_NUMBER_TOKENS:
+                _LOGGER.info(f"Word: {word}, Count: {count}")
+
+        sorted_wc = dict(sorted_wc)
+        names = list(sorted_wc.keys())
+        values = list(sorted_wc.values())
+
+        plt.bar(range(len(sorted_wc)), values, tick_label=names)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.grid()
+        complete_file_path = repo_path.joinpath("nlp", "word_count_bar")
+        plt.savefig(complete_file_path)
+        plt.close()
