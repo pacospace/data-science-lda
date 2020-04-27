@@ -61,10 +61,12 @@ def create_inputs_for_lda():
     complete_file_path = repo_path.joinpath("datasets", "clean_dataset.json")
     clean_dataset = _retrieve_file(file_path=complete_file_path, file_type="json")
 
+    texts_names = []
     texts = []
     for file_name, file_vocabulary in clean_dataset.items():
         _LOGGER.info(f"Taking vocabulary for: {file_name}...")
         texts.append(file_vocabulary)
+        texts_names.append(file_name)
 
     # Assign a unique integer id to all words appearing in the corpus, creating a vocabulary corpus
     dictionary = corpora.Dictionary(texts)
@@ -75,15 +77,18 @@ def create_inputs_for_lda():
     corpus = [dictionary.doc2bow(tokens) for tokens in texts]
 
     LDA_PERCENTAGE_TEST_DATASET = 0.2 or os.getenv("LDA_PERCENTAGE_TEST_DATASET")
+
     lda_percentage_training_dataset = (1 - float(LDA_PERCENTAGE_TEST_DATASET)) * 100
     _LOGGER.info("Training Dataset percentage is: %d" % lda_percentage_training_dataset)
+
     lda_percentage_test_dataset = float(LDA_PERCENTAGE_TEST_DATASET) * 100
     _LOGGER.info("Test Dataset percentage is: %d" % lda_percentage_test_dataset)
+
     corpus_train, corpus_test = _split_dataset(
         dataset=corpus, test_size=LDA_PERCENTAGE_TEST_DATASET
     )
 
-    return texts, dictionary, corpus, corpus_train, corpus_test
+    return texts, dictionary, corpus, corpus_train, corpus_test, texts_names
 
 
 def _run_lda(
@@ -140,7 +145,8 @@ def _run_lda(
     model_repo_path = repo_path.joinpath("lda", model_name)
     if not model_repo_path.exists():
         _LOGGER.info(
-            "No repo identified, creating new directory at %s" % model_repo_path)
+            "No repo identified, creating new directory at %s" % model_repo_path
+        )
         os.makedirs(model_repo_path)
 
     complete_file_path = model_repo_path.joinpath(f"{model_name}_lda_model")
@@ -292,7 +298,9 @@ def lda():
     ONLY_VISUALIZATION = bool(int(os.getenv("ONLY_VISUALIZATION", 0)))
 
     if not ONLY_VISUALIZATION:
-        texts, dictionary, corpus, corpus_train, corpus_test = create_inputs_for_lda()
+        texts, dictionary, corpus, corpus_train, corpus_test, texts_names = (
+            create_inputs_for_lda()
+        )
     else:
         _LOGGER.info(f"Only visualization of results is performed...")
 
@@ -300,17 +308,19 @@ def lda():
         if not ONLY_VISUALIZATION:
             _LOGGER.info(f"Starting Hyperparameters tuning for LDA...")
 
-            NUMBER_TOPICS_MIN = int(os.getenv("NUMBER_TOPICS_MIN"))
+            NUMBER_TOPICS_MIN = os.getenv("NUMBER_TOPICS_MIN")
             if not NUMBER_TOPICS_MIN:
                 raise InputFileMissingError(
                     "NUMBER_TOPICS_MIN environment variable was not provided."
                 )
+            NUMBER_TOPICS_MIN = int(NUMBER_TOPICS_MIN)
 
-            NUMBER_TOPICS_MAX = int(os.getenv("NUMBER_TOPICS_MAX"))
+            NUMBER_TOPICS_MAX = os.getenv("NUMBER_TOPICS_MAX")
             if not NUMBER_TOPICS_MAX:
                 raise InputFileMissingError(
                     "NUMBER_TOPICS_MAX environment variable was not provided."
                 )
+            NUMBER_TOPICS_MAX = int(NUMBER_TOPICS_MAX)
 
             _lda_hyperparameters_tuning(
                 corpus=corpus_train,
@@ -327,20 +337,16 @@ def lda():
         ldamodel = None
 
         if not ONLY_VISUALIZATION:
-            NUMBER_TOPICS = int(os.getenv("NUMBER_TOPICS"))
+            NUMBER_TOPICS = os.getenv("NUMBER_TOPICS")
             if not NUMBER_TOPICS:
                 raise InputFileMissingError(
                     "NUMBER_TOPICS environment variable was not provided."
                 )
+            NUMBER_TOPICS = int(NUMBER_TOPICS)
 
             LDA_ALPHA = os.getenv("LDA_ALPHA")
 
             LDA_ETA = os.getenv("LDA_ETA")
-
-            MODEL_NAME = "test" or os.getenv("MODEL_NAME")
-            model_name = (
-                MODEL_NAME + "_" + datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
-            )
 
             _LOGGER.info(
                 f"LDA hyperparameter Number of topics selected is:{NUMBER_TOPICS}"
@@ -353,6 +359,11 @@ def lda():
             if LDA_ETA:
                 LDA_ETA = float(LDA_ETA)
                 _LOGGER.info(f"LDA hyperparameter Eta selected is:{LDA_ETA}")
+
+            MODEL_NAME = "model" or os.getenv("MODEL_NAME")
+            model_name = MODEL_NAME + "_" + f"t{NUMBER_TOPICS}" "_" + datetime.utcnow().strftime(
+                "%Y-%m-%d_%H:%M:%S"
+            )
 
             _LOGGER.info(f"Starting LDA for... {model_name}")
 
@@ -374,11 +385,11 @@ def _visualize_topics(ldamodel: Optional[models.ldamodel.LdaModel] = None):
         LDA_MODEL_REPO_PATH = os.getenv("LDA_MODEL_REPO_PATH")
         if not LDA_MODEL_REPO_PATH:
             raise InputFileMissingError(
-                "LDA_MODEL_NAME environment variable was not provided."
+                "LDA_MODEL_REPO_PATH environment variable was not provided."
             )
         ldamodel = models.ldamodel.LdaModel.load(str(LDA_MODEL_REPO_PATH))
 
     _LOGGER.info("Topics identified:\n")
     topics = ldamodel.print_topics()
     for topic in topics:
-        _LOGGER.info(topic)
+        _LOGGER.info(f"Topic: {topic}")

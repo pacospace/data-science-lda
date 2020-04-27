@@ -19,6 +19,8 @@ pyyaml = "==3.13"
 scikit-learn = "*"
 click = "*"
 matplotlib = "*"
+umap-learn = "*"
+seaborn = "*"
 
 [dev-packages]
 pytest = "*"
