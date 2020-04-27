@@ -17,10 +17,6 @@ Dataset pre-processing and cleaning
 
 The steps used to create the cleaned dataset are descrbed in `NLP README <https://github.com/pacospace/data-science-lda/blob/master/data_science/nlp/README.rst>`__.
 
-.. code-block:: console
-
-    PYTHONPATH=. DEBUG_LEVEL=0 pipenv run python3 cli.py -c
-
 Run LDA
 =======
 
