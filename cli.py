@@ -27,6 +27,7 @@ from data_science.nlp.common_phrases import (
     collect_common_phrases as create_common_phraser,
 )
 from data_science.lda.lda import lda, create_inputs_for_lda
+from data_science.clustering.kmeans import clustering as clustering_methods
 
 _LOGGER = logging.getLogger("data_science.cli")
 
@@ -45,8 +46,9 @@ else:
     "--collect-common-phrases", "-p", is_flag=True, help="Collect Common Phrases."
 )
 @click.option("--run-lda", "-r", is_flag=True, help="Run LDA.")
+@click.option("--clustering", "-m", is_flag=True, help="Clustering using LDA model.")
 def cli(
-    aggregate_data: bool, clean_data: bool, collect_common_phrases: bool, run_lda: bool
+    aggregate_data: bool, clean_data: bool, collect_common_phrases: bool, run_lda: bool, clustering: bool
 ):
     """Command Line Interface for Data Science LDA."""
     if aggregate_data:
@@ -64,6 +66,10 @@ def cli(
     if run_lda:
         _LOGGER.info("Run LDA from Clean Dataset...")
         lda()
+
+    if clustering:
+        _LOGGER.info("Clustering using created LDA model...")
+        clustering_methods()
 
 
 if __name__ == "__main__":
