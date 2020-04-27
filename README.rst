@@ -15,7 +15,7 @@ The steps used to create the initial dataset are descrbed in `data gathering REA
 Dataset pre-processing and cleaning
 ===================================
 
-The steps used to create the initial dataset are descrbed in `NLP README <https://github.com/pacospace/data-science-lda/blob/master/data_science/nlp/README.rst>`__.
+The steps used to create the cleaned dataset are descrbed in `NLP README <https://github.com/pacospace/data-science-lda/blob/master/data_science/nlp/README.rst>`__.
 
 .. code-block:: console
 
@@ -24,7 +24,12 @@ The steps used to create the initial dataset are descrbed in `NLP README <https:
 Run LDA
 =======
 
-The steps used to create the initial dataset are descrbed in `LDA README <https://github.com/pacospace/data-science-lda/blob/master/data_science/lda/README.rst>`__.
+The steps used to create the LDA model are descrbed in `LDA README <https://github.com/pacospace/data-science-lda/blob/master/data_science/lda/README.rst>`__.
+
+Clustering
+==========
+
+The steps used to cluster packages using LDA model vectors are descrbed in `Clustering README <https://github.com/pacospace/data-science-lda/blob/master/data_science/clustering/README.rst>`__.
 
 Before starting
 ================
