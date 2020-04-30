@@ -183,8 +183,3 @@ your
 yours
 yourself
 yourselves
-example
-install
-may
-one
-use

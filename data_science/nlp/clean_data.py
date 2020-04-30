@@ -20,6 +20,7 @@
 import logging
 import os
 
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from typing import Any
@@ -62,7 +63,14 @@ def clean_data() -> None:
         file_path=f"{nlp_repo_path}/common_words.txt", file_type="txt"
     )
     common_words = [word for word in common_words_txt.split("\n")]
-    _LOGGER.debug(f"common_words words... \n{common_words}")
+    _LOGGER.debug(f"Common words... \n{common_words}")
+
+    # Retrieve list of specific common words list for normalization
+    specific_common_words_txt = _retrieve_file(
+        file_path=f"{nlp_repo_path}/specific_common_words.txt", file_type="txt"
+    )
+    specific_common_words = [word for word in specific_common_words_txt.split("\n")]
+    _LOGGER.debug(f"Specific common words... \n{specific_common_words}")
 
     # Retrieve list of non-character word list for normalization
     non_characerter_words_txt = _retrieve_file(
@@ -114,6 +122,7 @@ def clean_data() -> None:
             vocabulary, sentences, possible_ngrams_words = text_processing(
                 raw_text=readme_raw_text,
                 common_words=common_words,
+                specific_common_words_txt=specific_common_words_txt,
                 non_characerter_words=non_characerter_words,
                 bigram_model=bigram_model,
                 trigram_model=trigram_model,
@@ -180,7 +189,10 @@ def _visualize_clean_data():
                 wordcount[word] += 1
 
         sorted_wc = sorted(wordcount.items(), key=lambda k_v: k_v[1], reverse=True)
-        complete_file_path = repo_path.joinpath("nlp", "word_count_bar.json")
+        wc_name = (
+            "word_count_bar" + "_" + datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
+        )
+        complete_file_path = repo_path.joinpath("nlp", wc_name)
 
         _store_file(
             file_path=complete_file_path,
@@ -199,9 +211,16 @@ def _visualize_clean_data():
         values = list(sorted_wc.values())
 
         plt.bar(range(len(sorted_wc)), values, tick_label=names)
+        plt.title("Word count after text processing for DS Packages' README")
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.grid()
-        complete_file_path = repo_path.joinpath("nlp", "word_count_bar")
+
+        plot_name = (
+            f"top_{PLOT_NUMBER_TOKENS}_word_count_bar"
+            + "_"
+            + datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
+        )
+        complete_file_path = repo_path.joinpath("nlp", plot_name)
         plt.savefig(complete_file_path)
         plt.close()
