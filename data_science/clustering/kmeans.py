@@ -49,7 +49,7 @@ def _plot_clusters_umap(
     vectors_name_map: Dict[str, List[Any]],
     repo_path: Path,
 ):
-    """Plot clusters using UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction"""
+    """Plot clusters using UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction."""
     colours = sns.color_palette("RdBu", len(set(labels)))
     colours_map = {}
 

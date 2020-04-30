@@ -1,3 +1,6 @@
+LDA
+---
+
 Run LDA
 =======
 
@@ -19,4 +22,9 @@ Run Hyperparameters tuning for LDA to identify optimized number of topics:
 
 Once finished you will receive the hyperparameters to be used that maximize coherence.
 
-Use ONLY_VISUALIZATION=1 if you want to have a look at the results (it works 
+You can change the topic range step using HPT_LDA_TOPIC_STEP_SIZE, by default it is set to 2.
+
+Visualize results
+=================
+
+Use ONLY_VISUALIZATION=1 if you want to have a look at the results only.
