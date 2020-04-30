@@ -122,7 +122,7 @@ def clean_data() -> None:
             vocabulary, sentences, possible_ngrams_words = text_processing(
                 raw_text=readme_raw_text,
                 common_words=common_words,
-                specific_common_words_txt=specific_common_words_txt,
+                specific_common_words=specific_common_words,
                 non_characerter_words=non_characerter_words,
                 bigram_model=bigram_model,
                 trigram_model=trigram_model,
