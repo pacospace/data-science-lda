@@ -26,5 +26,13 @@ class InputFileMissingError(Exception):
     """Exception error when a required input is not provided."""
 
 
+class InputPathFileMissingError(Exception):
+    """Exception error when in the path provided there is no file."""
+
+
 class NotKnownDatasetMethodsError(Exception):
     """Exception error when dataset methods enums are not known."""
+
+
+class LdaInputTypeError(Exception):
+    """Exception error when an LDA input for a parameter is not correct."""

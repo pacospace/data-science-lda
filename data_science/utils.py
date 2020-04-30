@@ -20,6 +20,7 @@
 import logging
 import yaml
 import json
+import pickle
 
 from pathlib import Path
 from typing import Optional
@@ -30,18 +31,22 @@ _LOGGER = logging.getLogger("data_science_lda.utils")
 
 def _retrieve_file(file_path: Path, file_type: str) -> Optional[Any]:
     """Retrieve file to be used."""
-    with open(file_path, "r") as retrieved_file:
-        if file_type == "yaml":
-            input_file = yaml.safe_load(retrieved_file)
-        elif file_type == "json":
-            input_file = json.load(retrieved_file)
-        elif file_type == "txt":
-            input_file = retrieved_file.read()
-        else:
-            raise UnknownFileTypeError(
-                f"File type requested is not known {file_type},"
-                "`json`, `yaml`, `txt` currently available."
-            )
+    if file_type != "pkl":
+        with open(file_path, "r") as retrieved_file:
+            if file_type == "yaml":
+                input_file = yaml.safe_load(retrieved_file)
+            elif file_type == "json":
+                input_file = json.load(retrieved_file)
+            elif file_type == "txt":
+                input_file = retrieved_file.read()
+            else:
+                raise UnknownFileTypeError(
+                    f"File type requested is not known {file_type},"
+                    "`json`, `yaml`, `txt` currently available."
+                )
+    else:
+        with open(filename, "rb") as retrieved_file:
+            input_file = pickle.load(retrieved_file)
 
     return input_file
 
