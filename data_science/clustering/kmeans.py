@@ -34,6 +34,7 @@ from gensim import corpora, models
 from sklearn.cluster import KMeans
 
 from ..exceptions import InputFileMissingError
+from ..exceptions import InputPathFileMissingError
 from ..utils import _retrieve_file
 from ..utils import _store_file
 from ..lda.lda import create_inputs_for_lda
@@ -41,30 +42,48 @@ from ..lda.lda import create_inputs_for_lda
 _LOGGER = logging.getLogger("data_science_lda.clustering.kmeans")
 
 
-def _plot_clusters(
+def _plot_clusters_umap(
     vectors: List[List[float]],
-    labels: List[str],
+    labels: List[int],
+    model_name: str,
     vectors_name_map: Dict[str, List[Any]],
+    repo_path: Path,
 ):
-    """Plot clusters using UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction"""
-    # Create UMAP Projections
+    """Plot clusters using UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction."""
+    colours = sns.color_palette("RdBu", len(set(labels)))
+    colours_map = {}
+
+    for idx, colour in enumerate(colours):
+        colours_map[idx] = colours[idx]
+
+    # Create UMAP Projections ("Euclidean by deafult")
     reducer = umap.UMAP()
     projections = reducer.fit_transform(vectors)
 
     # Plot with KMEANS labels
-    plt.scatter(
-        projections[:, 0], projections[:, 1], c=[sns.color_palette()[x] for x in labels]
-    )
-    plt.gca().set_aspect("equal", "datalim")
+    fig, ax = plt.subplots()
+    for g in np.unique(labels):
+        ix = np.where(labels == g)
+        ax.scatter(
+            projections[ix, 0],
+            projections[ix, 1],
+            c=[colour for idx, colour in colours_map.items() if idx == g],
+            label=g,
+            s=50,
+        )
+
+    ax.legend()
+    plt.grid()
     plt.title(
         f"UMAP projection of {len(vectors)} DS Package Vectors in {len(set(labels))} Groups",
         fontsize=12,
     )
-    plt.grid()
-    current_path = Path.cwd()
-    repo_path = current_path.joinpath("data_science")
-    complete_file_path = repo_path.joinpath("clustering", "clusters")
+    plt.gca().set_aspect("equal", "datalim")
+
+    complete_file_path = repo_path.joinpath("clustering", f"{model_name}_clusters_umap")
     plt.savefig(complete_file_path)
+
+    return colours_map
 
 
 def _run_kmeans(corpus: List[Any], file_names: List[str]):
@@ -74,7 +93,16 @@ def _run_kmeans(corpus: List[Any], file_names: List[str]):
         raise InputFileMissingError(
             "LDA_MODEL_REPO_PATH environment variable was not provided."
         )
+
+    if not LDA_MODEL_REPO_PATH.exists():
+        raise InputPathFileMissingError(
+            f"There is no LDA model present at this path, "
+            f"you need to provide path to LDA model."
+        )
+
     ldamodel = models.ldamodel.LdaModel.load(str(LDA_MODEL_REPO_PATH))
+
+    model_name = str(LDA_MODEL_REPO_PATH).split("/")[-1]
 
     topics = ldamodel.print_topics()
     for topic in topics:
@@ -86,21 +114,39 @@ def _run_kmeans(corpus: List[Any], file_names: List[str]):
             "NUMBER_CLUSTERS environment variable was not provided."
         )
     NUMBER_CLUSTERS = int(NUMBER_CLUSTERS)
+    _LOGGER.info(f"Number of clusters set to: {NUMBER_CLUSTERS}")
+
+    current_path = Path.cwd()
+    repo_path = current_path.joinpath("data_science")
+
+    # TODO: Improve vectors with package2vec and projecthealth2vec
 
     topics_files_map = {}
-    # TODO: Improve vectors with package2vec and packagehealth2vec
     X = []
     for i in range(len(corpus)):
         top_topics = ldamodel.get_document_topics(corpus[i], minimum_probability=0.0)
         topic_vec = [top_topics[i][1] for i in range(len(top_topics))]
+
         X.append(np.array(topic_vec))
         topics_files_map[file_names[i]] = top_topics
+
     X = np.array(X)
     kmeans = KMeans(n_clusters=NUMBER_CLUSTERS, random_state=42).fit(X)
 
-    _plot_clusters(X, kmeans.labels_, topics_files_map)
+    _LOGGER.info(f"Kmeans labels: {kmeans.labels_}")
+
+    _plot_clusters_umap(
+        vectors=X,
+        labels=kmeans.labels_,
+        model_name=model_name,
+        vectors_name_map=topics_files_map,
+        repo_path=repo_path,
+    )
+
+    complete_file_path = repo_path.joinpath("clustering", f"{model_name}_clusters.json")
 
     # Add names to groups
+    groups_document = {}
     groups = {}
     for idx, label in enumerate(list(kmeans.labels_)):
         name = file_names[idx]
@@ -111,11 +157,21 @@ def _run_kmeans(corpus: List[Any], file_names: List[str]):
         else:
             groups[label][name] = topics_files_map[name]
 
+        if str(label) not in groups_document:
+            groups_document[str(label)] = []
+            groups_document[str(label)].append(name)
+        else:
+            groups_document[str(label)].append(name)
+
+    _store_file(
+        file_path=complete_file_path, file_type="json", collected_data=groups_document
+    )
+
     # Display group info
-    for g in groups:
-        _LOGGER.info(f"\n########## Group: {g} ##########\n")
-        _LOGGER.info(f"\nDocuments:\n")
-        for name, vector in groups[g].items():
+    for group in sorted(groups):
+        _LOGGER.info(f"########## Group: {group} ##########")
+        _LOGGER.info(f"Documents:")
+        for name, vector in groups[group].items():
             _LOGGER.info(f"Name: {name}")
             _LOGGER.debug(vector)
 

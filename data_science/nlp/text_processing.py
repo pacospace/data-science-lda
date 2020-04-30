@@ -370,6 +370,7 @@ def text_processing(
     raw_text: str,
     common_words: List[str],
     non_characerter_words: List[str],
+    specific_common_words: List[str],
     bigram_model: Phraser,
     trigram_model: Phraser,
 ):
@@ -487,11 +488,11 @@ def text_processing(
                 f"Tokens after non character words cleaning... \n{clean_tokens}"
             )
 
-            # Lower the tokens
+            # Lower the tokens and filter specific common words
             clean_tokens = [
                 token.lower()
                 for token in clean_tokens
-                if token.lower() not in common_words
+                if token.lower() not in specific_common_words
             ]
             _LOGGER.debug(f"Tokens after lowering words.. \n{clean_tokens}")
 

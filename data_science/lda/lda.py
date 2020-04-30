@@ -32,6 +32,7 @@ from typing import List
 from typing import Dict
 from typing import Any
 from typing import Optional
+from typing import Union
 from pathlib import Path
 
 from gensim import corpora, models
@@ -40,6 +41,8 @@ from gensim.models import CoherenceModel
 from sklearn.model_selection import train_test_split
 
 from ..exceptions import InputFileMissingError
+from ..exceptions import LdaInputTypeError
+from ..exceptions import InputPathFileMissingError
 from ..utils import _retrieve_file
 from ..utils import _store_file
 
@@ -76,7 +79,7 @@ def create_inputs_for_lda():
     # Bag of Words (BoW) Representation
     corpus = [dictionary.doc2bow(tokens) for tokens in texts]
 
-    LDA_PERCENTAGE_TEST_DATASET = 0.2 or os.getenv("LDA_PERCENTAGE_TEST_DATASET")
+    LDA_PERCENTAGE_TEST_DATASET = 0.1 or os.getenv("LDA_PERCENTAGE_TEST_DATASET")
 
     lda_percentage_training_dataset = (1 - float(LDA_PERCENTAGE_TEST_DATASET)) * 100
     _LOGGER.info("Training Dataset percentage is: %d" % lda_percentage_training_dataset)
@@ -95,13 +98,13 @@ def _run_lda(
     corpus: List[Any],
     dictionary: Dict[int, str],
     num_topics: int,
-    passes: int = 300,
-    iterations: int = 400,
+    passes: int = 100,
+    iterations: int = 200,
     chunksize: int = 200,
     model_name: str = "",
     hyperparameter_tuning: bool = False,
-    alpha: Optional[float] = None,
-    eta: Optional[float] = None,
+    alpha: Optional[Union[float, str]] = None,
+    eta: Optional[Union[float, str]] = None,
 ):
     """Apply Latent Dirichlet Allocation (LDA)
 
@@ -194,20 +197,47 @@ def _visualize_hyperparameters_tuning_results():
     """Visualize results Latent Dirichlet Allocation (LDA) Hyperparameters tuning."""
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
-    results_path = repo_path.joinpath("lda", "results_hyperparameter_tuning.json")
-    results_hyperparameter_tuning = _retrieve_file(
-        file_path=results_path, file_type="json"
+    hyperparameters_tuning_path = repo_path.joinpath(
+        "lda", "hyperparameters_tuning.json"
     )
+    if not hyperparameters_tuning_path.exists():
+        raise InputPathFileMissingError(
+            f"There is no `hyperparameters_tuning.json` in lda repo, "
+            f"you need to run Hyperparameter Tuning for LDA fisrt."
+        )
+    hyperparameters_tuning = _retrieve_file(
+        file_path=hyperparameters_tuning_path, file_type="json"
+    )
+    topics_range = hyperparameters_tuning["topics_range"]
+    alpha_range = hyperparameters_tuning["alpha_spectrum"]
+    eta_range = hyperparameters_tuning["eta_spectrum"]
 
-    results_hyperparameter_tuning.sort(key=lambda x: x[4], reverse=True)
-    for result in results_hyperparameter_tuning:
-        _LOGGER.info(f"Parameters: {result}")
+    results = hyperparameters_tuning["results"]
+    # Sort by coeherence
+    results.sort(key=lambda x: x[4], reverse=True)
 
-    _LOGGER.info(f"Parameters for max coherence: {results_hyperparameter_tuning[0]}")
-    _LOGGER.info(f"Max Num topics: {results_hyperparameter_tuning[0][0]}")
-    # TODO Add visualizations
+    _LOGGER.info(f"Topics range: {topics_range}")
+    n = 1
+    for result in results:
+        _LOGGER.info(f"Parameters for run n {n}: {result}")
+        n += 1
 
-    return results_hyperparameter_tuning[0]
+    optimized_per_topic = []
+    for topic_number in sorted(topics_range, reverse=True):
+        for result in results:
+            if result[0] == topic_number:
+                optimized_per_topic.append(result)
+                break
+
+    optimized_per_topic.sort(key=lambda x: x[4], reverse=True)
+
+    for optimized in optimized_per_topic:
+        _LOGGER.info(f"Optimized parameters for {optimized[0]} topics is: {optimized}")
+    _LOGGER.info(f"Parameters for max coherence: {results[0]}")
+    _LOGGER.info(f"Max Num topics: {results[0][0]}")
+    # TODO Add visualizations plots
+
+    return results[0]
 
 
 def _lda_hyperparameters_tuning(
@@ -216,7 +246,7 @@ def _lda_hyperparameters_tuning(
     dictionary: List[Any],
     min_topics: int,
     max_topics: int,
-    step_size: int = 2,
+    step_size: int,
     alpha_min: float = 0.01,
     alpha_max: float = 1,
     alpha_step: float = 0.5,
@@ -244,10 +274,10 @@ def _lda_hyperparameters_tuning(
 
     current_path = Path.cwd()
     repo_path = current_path.joinpath("data_science")
-    results_path = repo_path.joinpath("lda", "results_hyperparameter_tuning.json")
+    results_path = repo_path.joinpath("lda", "hyperparameters_tuning.json")
 
     complete_results_and_inputs = {
-        "topics_range": topics_range,
+        "topics_range": list(topics_range),
         "alpha_spectrum": alpha_spectrum,
         "eta_spectrum": eta_spectrum,
         "results": results,
@@ -308,26 +338,29 @@ def lda():
         if not ONLY_VISUALIZATION:
             _LOGGER.info(f"Starting Hyperparameters tuning for LDA...")
 
-            NUMBER_TOPICS_MIN = os.getenv("NUMBER_TOPICS_MIN")
-            if not NUMBER_TOPICS_MIN:
+            HPT_LDA_NUMBER_TOPICS_MIN = os.getenv("HPT_LDA_NUMBER_TOPICS_MIN")
+            if not HPT_LDA_NUMBER_TOPICS_MIN:
                 raise InputFileMissingError(
-                    "NUMBER_TOPICS_MIN environment variable was not provided."
+                    "HPT_LDA_NUMBER_TOPICS_MIN environment variable was not provided."
                 )
-            NUMBER_TOPICS_MIN = int(NUMBER_TOPICS_MIN)
+            HPT_LDA_NUMBER_TOPICS_MIN = int(HPT_LDA_NUMBER_TOPICS_MIN)
 
-            NUMBER_TOPICS_MAX = os.getenv("NUMBER_TOPICS_MAX")
-            if not NUMBER_TOPICS_MAX:
+            HPT_LDA_NUMBER_TOPICS_MAX = os.getenv("HPT_LDA_NUMBER_TOPICS_MAX")
+            if not HPT_LDA_NUMBER_TOPICS_MAX:
                 raise InputFileMissingError(
-                    "NUMBER_TOPICS_MAX environment variable was not provided."
+                    "HPT_LDA_NUMBER_TOPICS_MAX environment variable was not provided."
                 )
-            NUMBER_TOPICS_MAX = int(NUMBER_TOPICS_MAX)
+            HPT_LDA_NUMBER_TOPICS_MAX = int(HPT_LDA_NUMBER_TOPICS_MAX)
+
+            HPT_LDA_TOPIC_STEP_SIZE = int(os.getenv("HPT_LDA_TOPIC_STEP_SIZE")) or 2
 
             _lda_hyperparameters_tuning(
-                corpus=corpus_train,
+                corpus=corpus,
                 dictionary=dictionary,
                 texts=texts,
-                min_topics=NUMBER_TOPICS_MIN,
-                max_topics=NUMBER_TOPICS_MAX,
+                min_topics=HPT_LDA_NUMBER_TOPICS_MIN,
+                max_topics=HPT_LDA_NUMBER_TOPICS_MAX,
+                step_size=HPT_LDA_TOPIC_STEP_SIZE,
             )
 
         _visualize_hyperparameters_tuning_results()
@@ -353,12 +386,26 @@ def lda():
             )
 
             if LDA_ALPHA:
-                LDA_ALPHA = float(LDA_ALPHA)
-                _LOGGER.info(f"LDA hyperparameter Alpha selected is:{LDA_ALPHA}")
+                if LDA_ALPHA.isalpha():
+                    pass
+                elif LDA_ALPHA.replace(".", "", 1).isdigit():
+                    LDA_ALPHA = float(LDA_ALPHA)
+                else:
+                    raise LdaInputTypeError(
+                        f"Input for LDA alpha parameter can be all digits or all alphabetical letters {LDA_ALPHA}"
+                    )
+                _LOGGER.info(f"LDA hyperparameter Alpha selected is: {LDA_ALPHA}")
 
             if LDA_ETA:
-                LDA_ETA = float(LDA_ETA)
-                _LOGGER.info(f"LDA hyperparameter Eta selected is:{LDA_ETA}")
+                if LDA_ETA.isalpha():
+                    pass
+                elif LDA_ETA.replace(".", "", 1).isdigit():
+                    LDA_ETA = float(LDA_ETA)
+                else:
+                    raise LdaInputTypeError(
+                        f"Input for LDA eta parameter can be all digits or all alphabetical letters {LDA_ETA}"
+                    )
+                _LOGGER.info(f"LDA hyperparameter Eta selected is: {LDA_ETA}")
 
             MODEL_NAME = "model" or os.getenv("MODEL_NAME")
             model_name = MODEL_NAME + "_" + f"t{NUMBER_TOPICS}" "_" + datetime.utcnow().strftime(
@@ -368,7 +415,7 @@ def lda():
             _LOGGER.info(f"Starting LDA for... {model_name}")
 
             ldamodel = _run_lda(
-                corpus=corpus_train,
+                corpus=corpus,
                 dictionary=dictionary,
                 num_topics=NUMBER_TOPICS,
                 alpha=LDA_ALPHA,
